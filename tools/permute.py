@@ -89,7 +89,7 @@ CALL = re.compile(r"\b(?!(?:if|while|for|switch|return|sizeof)\b)\w+\s*\(")
 MEMREAD = re.compile(r"->|\.\s*[A-Za-z_]|\[|(?:^|[=(,+\-*/&|!~<>?:])\s*\*")
 STORE = re.compile(r"(->|\.\s*\w+|\]|^\s*\*[^=]*)\s*([+\-*/&|^]|<<|>>)?=(?!=)", re.M)
 ASSIGN = re.compile(r"^\s*(?:[A-Za-z_][\w 	]*?[\s*]+)?\**([A-Za-z_]\w*)\s*(?:[+\-*/&|^]|<<|>>)?=(?!=)\s*(.*?);\s*$", re.S)
-DECL = re.compile(r"^\s*[A-Za-z_][\w 	]*[\s*]+\**[A-Za-z_]\w*\s*(\[[^\]]*\])?\s*;\s*$")
+DECL = re.compile(r"^\s*(?!(?:return|goto|break|continue|case|else|do)\b)[A-Za-z_][\w 	]*[\s*]+\**[A-Za-z_]\w*\s*(\[[^\]]*\])?\s*;\s*$")
 JUMP = re.compile(r"\b(return|break|continue|goto|case|default)\b|^\s*\w+\s*:(?!:)", re.M)
 CWORDS = {"if", "else", "while", "for", "do", "return", "sizeof", "int", "unsigned", "char", "void",
           "const", "volatile", "struct", "uint", "bool", "true", "false", "NULL"}

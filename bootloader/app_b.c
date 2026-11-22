@@ -124,8 +124,8 @@ void boot_direct(void)
 
 void scan_dols(void)
 {
-    DIR dir;
     FILINFO fno;
+    DIR dir;
     if (f_opendir(&dir, "/") != FR_OK)
         return;
     int n = 0;
@@ -133,7 +133,7 @@ void scan_dols(void)
         if (f_readdir(&dir, &fno) != FR_OK)
             break;
         uint8_t attr = fno.fattrib & (AM_DIR | AM_HID);
-        if (attr)
+        if (unlikely(0 != attr))
             continue;
         size_t len = strlen(fno.fname);
         if (len > 4 && fno.fname[len - 4] == '.' && (fno.fname[len - 3] & ~0x20) == 'D' &&
@@ -141,7 +141,7 @@ void scan_dols(void)
             char *dst = dol_list.name[n];
             strncpy(dst, fno.fname, 0x28);
             dst[0x27] = attr;
-            if (++n > 7)
+            if (unlikely(++n > 7))
                 break;
         }
     }
@@ -177,11 +177,11 @@ struct open_rep {
 // 0: new update.fpkg stored; 1: not on the SD card; 2: empty; negative: link or write error.
 int fetch_update(void)
 {
-    struct open_rep rep;
-    uint8_t buf[0x1000];
-    int ret;
+    unsigned ret;
 
     puts("Opening SD card /update.fpkg");
+    uint8_t buf[0x1000];
+    struct open_rep rep;
     {
         struct open_req q;
         q.magic = REQ_MAGIC;
@@ -190,30 +190,30 @@ int fetch_update(void)
         q.path[0xff] = 0;
         q.mode = 4;
         ret = qspi_send(&q, 0x140, 0);
-        if (ret != 0) {
+        if (ret) {
             ret = 1;
             puts("Unable to send open command");
             return -ret;
         }
         q.magic = REQ_MAGIC;
         q.cmd = IPC_STATUS;
-        if (qspi_send(&q, 0x20, 0x20) == 0) {
-            uint32_t got = 0;
+        if (likely(qspi_send(&q, 0x20, 0x20) == 0)) {
+            uint got = 0;
             do {
                 uint32_t n = 0;
                 esp_dma_read((uint8_t *)&rep + got, 0x20 - got, &n, 0);
                 got += n;
             } while (got < 0x20);
         }
-        if (rep.status != 0) {
+        if (0 != rep.status) {
             puts("Could not open SD card /update.fpkg, skipping");
             return 1;
         }
     }
 
-    uint32_t remaining = rep.size_lo;
+    uint remaining = rep.size_lo;
     uint8_t fd = rep.fd;
-    printf("Update size: %d\n", remaining);
+    printf("Update size: %d\n", (unsigned)remaining);
     fd_status.show_video = 1;
     fd_status.show_progress_bar = 1;
     if (remaining == 0)
@@ -224,25 +224,25 @@ int fetch_update(void)
     do {
         struct net_req r;
         UINT bw;
-        uint32_t chunk = remaining > 0x1000 ? 0x1000 : remaining;
         r.magic = REQ_MAGIC;
         r.cmd = IPC_READ;
         r.arg = fd;
+        unsigned chunk = remaining > 0x1000 ? 0x1000 : remaining;
         r.off = rep.size_lo - remaining;
         r.len = chunk;
-        if (qspi_send(&r, 0x20, chunk) == 0) {
-            uint32_t got = 0;
+        if (likely(qspi_send(&r, 0x20, chunk) == 0)) {
+            int32_t got = 0;
             do {
-                uint32_t n = 0;
+                int32_t n = 0;
                 esp_dma_read(buf + got, chunk - got, &n, 0);
                 got += n;
             } while (got < chunk);
         }
         uint64_t size = ((uint64_t)rep.size_hi << 32) | rep.size_lo;
-        fd_status.progress = __builtin_bswap16((uint16_t)((uint64_t)(r.off * 1000) / size));
-        if (!opened) {
+        fd_status.progress = __builtin_bswap16((uint16_t)((uint64_t)(1000 * r.off) / size));
+        if (likely(opened == 0)) {
             puts("Opening local FAT " UPDATE_PATH);
-            if (f_open(&fil, UPDATE_PATH, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
+            if (f_open(&fil, UPDATE_PATH, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
                 ret = 2;
                 puts("Could not open local FAT " UPDATE_PATH ", skipping");
                 return -ret;
@@ -255,9 +255,9 @@ int fetch_update(void)
             f_close(&fil);
             return ret;
         }
-        remaining -= chunk;
         opened = true;
-    } while (remaining != 0);
+        remaining -= chunk;
+    } while ((int)remaining);
     f_close(&fil);
     {
         struct net_req r;
@@ -284,20 +284,20 @@ int fetch_update(void)
 // Update the ESP32 from the SD card or the local FAT, then hand off to the main firmware.
 void update_and_boot(void)
 {
+    uint rc;
     uint8_t c;
-    int rc;
-    bool unchanged;
 
     qspi_init();
+    bool unchanged;
     SET_LINE1("Waiting for ESP Boot...");
     if (esp_boot_wait()) {
         SET_LINE2("Attempting ESP reflash");
         SET_LINE1("Preparing SD card updates");
         SET_LINE1("Resetting ESP32");
         ESP_DOWNLOAD_MODE();
-        SET_LINE1("Performing update");
         unchanged = false;
-        if (install_update(UPDATE_PATH) != 0) {
+        SET_LINE1("Performing update");
+        if (unlikely(install_update(UPDATE_PATH) != 0)) {
             memcpy(fd_status.text, "Update FAILED, replace update.fpkg or do USB recovery", 0x36);
             goto report;
         }
@@ -319,7 +319,7 @@ void update_and_boot(void)
         gpio_set_function(13, GPIO_FUNC_PIO1);
         busy_wait_ms(100);
         rc = fetch_update();
-        if (rc != 0) {
+        if (likely(rc != 0)) {
             unchanged = rc == 2;
             SET_LINE1("Update complete, press START");
             f_unlink("/forceupdate");

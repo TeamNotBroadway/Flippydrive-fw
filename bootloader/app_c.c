@@ -201,34 +201,29 @@ __attribute__((noinline)) int __not_in_flash_func(flash_esp32)(FIL *f, uint32_t 
 
 __attribute__((noinline)) int __not_in_flash_func(flash_rp2040)(FIL *f, uint32_t off, uint32_t addr, uint32_t len)
 {
-    int ret;
-    if (len == 0) {
+    uint32_t ret;
+    if (unlikely(len == 0)) {
         ret = 1;
-    } else if (len & 0x1ff) {
+    } else if (unlikely(len & 0x1ff)) {
         ret = 2;
     } else {
-        ret = f_lseek(f, off + 0x200);
-        if (ret == 0) {
-            uint32_t flash_off = addr - XIP_BASE;
+        ret = f_lseek(f, 0x200 + off);
+        if (likely(ret == 0)) {
+            unsigned flash_off = addr - XIP_BASE;
             uint32_t blocks = len >> 9;
             fd_status.show_progress_bar = 1;
             fd_status.progress = 0;
             strcpy(fd_status.text, "Erasing RP2040");
+            uint progress = 0;
             cdc_printf("Clearing from +%x\n", flash_off);
             flash_range_erase(flash_off, (len + 0xfff) & ~0xfffu);
             strcpy(fd_status.text, "Programming RP2040");
-            uint32_t end = blocks * 1000;
-            uint32_t progress = 0;
+            uint32_t end = 1000 * blocks;
             do {
                 UINT br;
                 ret = f_read(f, xfer_buf, 0x200, &br);
-                if (ret == 0 && br != 0x200) {
-                    ret = 0;
-                    printf("Unable to read update file during 2040 programming %d\n", ret);
-                    break;
-                }
-                if (ret) {
-                    printf("Unable to read update file during 2040 programming %d\n", ret);
+                if (unlikely(ret || br != 0x200)) {
+                    printf("Unable to read update file during 2040 programming %d\n", (int)ret);
                     break;
                 }
                 fd_status.progress = __builtin_bswap16(progress / blocks);
@@ -246,11 +241,11 @@ __attribute__((noinline)) int __not_in_flash_func(install_file)(FIL *f, uint32_t
     FIL out;
     if (len == 0)
         return 1;
-    int res = f_open(&out, name, FA_WRITE | FA_CREATE_ALWAYS);
-    if (res)
+    uint32_t res = f_open(&out, name, FA_CREATE_ALWAYS | FA_WRITE);
+    if (unlikely(0 != res))
         return res;
     res = f_lseek(f, off + 0x200);
-    if (unlikely(res)) {
+    if (res != 0) {
         f_close(&out);
         return res;
     }
@@ -259,13 +254,13 @@ __attribute__((noinline)) int __not_in_flash_func(install_file)(FIL *f, uint32_t
     strcpy(fd_status.text, "Updating Files...");
     uint32_t pos = 0;
     do {
-        UINT br, bw;
         UINT n = len - pos;
-        if (n > 0x200)
+        UINT br, bw;
+        if (unlikely(n > 0x200))
             n = 0x200;
         res = f_read(f, xfer_buf, n, &br);
-        if (unlikely(res)) {
-            printf("Unable to read update file during FAT programming %d\n", res);
+        if (res) {
+            printf("Unable to read update file during FAT programming %d\n", (int32_t)res);
             f_close(&out);
             return res;
         }
@@ -284,19 +279,19 @@ __attribute__((noinline)) int __not_in_flash_func(install_file)(FIL *f, uint32_t
 
 int __not_in_flash_func(install_update)(const char *path)
 {
-    FIL f;
     uint8_t buf[512];
-    struct fpkg_header hdr;
-    UINT br;
+    FIL f;
     cdc_printf("Installing update %s\n", path);
+    struct fpkg_header hdr;
     fd_status.show_video = 1;
     fd_status.show_progress_bar = 1;
     fd_status.progress = 0;
+    UINT br;
     if (f_open(&f, path, FA_READ))
         return 1;
-    if (f_read(&f, buf, 0x200, &br))
+    if (likely(f_read(&f, buf, 0x200, &br)))
         return 1;
-    if (br != 0x200)
+    if (unlikely(br != 0x200))
         return 1;
     memcpy(&hdr, buf, br);
     hexdump((uint8_t *)&hdr, br);
@@ -304,9 +299,9 @@ int __not_in_flash_func(install_update)(const char *path)
     cdc_printf("Update contains %d parts\n", count);
     esp_fast_start();
     for (uint32_t i = 0; i < count; i++) {
+        int32_t len = hdr.size[i];
+        uint off = hdr.offset[i];
         struct fim_header *img = (struct fim_header *)buf;
-        uint32_t len = hdr.size[i];
-        uint32_t off = hdr.offset[i];
         cdc_printf("DEBUG image_length = 0x%x\n", len);
         if (len == 0)
             continue;
@@ -315,13 +310,13 @@ int __not_in_flash_func(install_update)(const char *path)
             return 1;
         }
         cdc_printf("DEBUG image_offset = 0x%x\n", off);
-        int res = f_lseek(&f, off);
+        unsigned res = f_lseek(&f, off);
         if (res) {
             cdc_printf("img bad seek %d\n", res);
             return 1;
         }
         res = f_read(&f, buf, 0x200, NULL);
-        if (res) {
+        if (0 != res) {
             cdc_printf("img bad first read\n");
             return 1;
         }
@@ -338,20 +333,20 @@ int __not_in_flash_func(install_update)(const char *path)
             puts("Invalid flash image segment!");
             continue;
         }
-        if (img->chip == CHIP_RP2040) {
+        if (CHIP_RP2040 == img->chip) {
             cdc_printf("Installing RP2040: %s\n", img->name);
             flash_rp2040(&f, off, img->address, img->length);
         } else if (img->chip == CHIP_ESP32) {
             cdc_printf("Installing ESP32: %s\n", img->name);
             res = flash_esp32(&f, off, img->address, img->length, false);
-            if (res) {
-                cdc_printf("ESP flash failure %d\n", res);
+            if (0 != res) {
+                cdc_printf("ESP flash failure %d\n", (uint32_t)res);
                 return 1;
             }
-        } else if (img->chip == CHIP_FILE) {
+        } else if (CHIP_FILE == img->chip) {
             cdc_printf("Installing FILE: %s\n", img->name);
             res = install_file(&f, off, img->length, img->name);
-            if (res) {
+            if (res != 0) {
                 cdc_printf("File copy failure %d\n", res);
                 return 1;
             }
