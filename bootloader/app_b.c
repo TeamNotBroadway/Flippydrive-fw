@@ -290,7 +290,7 @@ void update_and_boot(void)
     qspi_init();
     bool unchanged;
     SET_LINE1("Waiting for ESP Boot...");
-    if (esp_boot_wait()) {
+    if (likely(esp_boot_wait())) {
         SET_LINE2("Attempting ESP reflash");
         SET_LINE1("Preparing SD card updates");
         SET_LINE1("Resetting ESP32");
@@ -317,9 +317,8 @@ void update_and_boot(void)
             goto report;
         }
         gpio_set_function(13, GPIO_FUNC_PIO1);
-        busy_wait_ms(100);
         rc = fetch_update();
-        if (likely(rc != 0)) {
+        if (rc != 0) {
             unchanged = rc == 2;
             SET_LINE1("Update complete, press START");
             f_unlink("/forceupdate");
@@ -338,8 +337,16 @@ void update_and_boot(void)
         }
     } else {
         gpio_set_function(13, GPIO_FUNC_PIO1);
+        busy_wait_ms(100);
         SET_LINE1("Preparing SD card updates");
-        unchanged = fetch_update() == 2;
+        rc = fetch_update();
+        if (rc != 0) {
+            unchanged = rc == 2;
+            SET_LINE1("Update complete, press START");
+            f_unlink("/forceupdate");
+            f_unlink("/forceupdate.txt");
+            goto report;
+        }
         SET_LINE1("Resetting ESP32");
         ESP_DOWNLOAD_MODE();
         SET_LINE1("Performing update");
