@@ -284,13 +284,35 @@ int fetch_update(void)
 // Update the ESP32 from the SD card or the local FAT, then hand off to the main firmware.
 void update_and_boot(void)
 {
-    uint rc;
-    uint8_t c;
+    bool unchanged;
+    int rc;
 
     qspi_init();
-    bool unchanged;
+    uint8_t c;
     SET_LINE1("Waiting for ESP Boot...");
-    if (likely(esp_boot_wait())) {
+    if (!likely(esp_boot_wait())) {
+        gpio_set_function(13, GPIO_FUNC_PIO1);
+        busy_wait_ms(100);
+        SET_LINE1("Preparing SD card updates");
+        rc = fetch_update();
+        if (unlikely(rc != 0)) {
+            unchanged = rc == 2;
+            SET_LINE1("Update complete, press START");
+            f_unlink("/forceupdate");
+            f_unlink("/forceupdate.txt");
+            goto report;
+        }
+        SET_LINE1("Resetting ESP32");
+        ESP_DOWNLOAD_MODE();
+        SET_LINE1("Performing update");
+        if (!likely(install_update(UPDATE_PATH) == 0)) {
+            memcpy(fd_status.text, "Update FAILED, replace update.fpkg or do USB recovery", 0x36);
+        } else {
+            SET_LINE1("Update complete, press START");
+            f_unlink("/forceupdate");
+            f_unlink("/forceupdate.txt");
+        }
+    } else {
         SET_LINE2("Attempting ESP reflash");
         SET_LINE1("Preparing SD card updates");
         SET_LINE1("Resetting ESP32");
@@ -312,15 +334,15 @@ void update_and_boot(void)
         esp_reset();
         busy_wait_ms(4000);
         SET_LINE1("Preparing SD card updates");
-        if (esp_boot_wait()) {
+        if (unlikely(esp_boot_wait())) {
             SET_LINE1("ESP boot FAILURE, do USB recovery");
             goto report;
         }
         gpio_set_function(13, GPIO_FUNC_PIO1);
         rc = fetch_update();
         if (rc != 0) {
-            unchanged = rc == 2;
             SET_LINE1("Update complete, press START");
+            unchanged = rc == 2;
             f_unlink("/forceupdate");
             f_unlink("/forceupdate.txt");
             goto report;
@@ -328,34 +350,12 @@ void update_and_boot(void)
         SET_LINE1("Resetting ESP32");
         ESP_DOWNLOAD_MODE();
         SET_LINE1("Performing update");
-        if (install_update(UPDATE_PATH) != 0) {
-            memcpy(fd_status.text, "Update FAILED, replace update.fpkg or do USB recovery", 0x36);
+        if (unlikely(install_update(UPDATE_PATH) == 0)) {
+            SET_LINE1("Update complete, press START");
+            f_unlink("/forceupdate");
+            f_unlink("/forceupdate.txt");
         } else {
-            SET_LINE1("Update complete, press START");
-            f_unlink("/forceupdate");
-            f_unlink("/forceupdate.txt");
-        }
-    } else {
-        gpio_set_function(13, GPIO_FUNC_PIO1);
-        busy_wait_ms(100);
-        SET_LINE1("Preparing SD card updates");
-        rc = fetch_update();
-        if (rc != 0) {
-            unchanged = rc == 2;
-            SET_LINE1("Update complete, press START");
-            f_unlink("/forceupdate");
-            f_unlink("/forceupdate.txt");
-            goto report;
-        }
-        SET_LINE1("Resetting ESP32");
-        ESP_DOWNLOAD_MODE();
-        SET_LINE1("Performing update");
-        if (install_update(UPDATE_PATH) != 0) {
             memcpy(fd_status.text, "Update FAILED, replace update.fpkg or do USB recovery", 0x36);
-        } else {
-            SET_LINE1("Update complete, press START");
-            f_unlink("/forceupdate");
-            f_unlink("/forceupdate.txt");
         }
     }
 
