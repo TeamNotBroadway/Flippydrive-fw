@@ -13,7 +13,7 @@ been rebuilt and compared, so "source" means "identified", not "matched".
 | `cubeboot.dol` | 0.0.0 | cubeboot entry stub plus gzip payload (member at 0x16c0); payload says `cubeboot rc15`, newlib 4.5.0.20241231 | [OffBroadway/cubeboot branch beta-rc15](https://github.com/OffBroadway/cubeboot/tree/beta-rc15), head 873893b4. `docs/PLAN.md` already matched 20 payload functions against this version | source identified |
 | `backup.dol` | 0.0.0 | FlippyDrive disc backup utility: "Dumping Disc...", "dump in fallback mode", "dump in fast mode (DISABLED)" ([docs page](https://github.com/OffBroadway/flippydrive/blob/main/source/backup.rst)) | not found. OffBroadway/cleanrip (a fork of emukidid/cleanrip) has none of these strings | no public source |
 | `remote.dol` | 0.0.0 | "Switching to Remote...", "Remote Access complete...", newlib 4.5.0.20241231 | not found in OffBroadway's repositories or by GitHub code search | no public source |
-| `esp_bootldr.bin`, `esp_parttab.bin`, `esp_ode.bin` | 0.2.0, 0.2.1, 0.2.2 | ESP32 bootloader, partition table and application; encrypted (no 0xE9 image magic, incompressible) | none public | opaque |
+| `esp_bootldr.bin`, `esp_parttab.bin`, `esp_ode.bin` | 0.2.0, 0.2.1, 0.2.2 | ESP32 bootloader, partition table and application; ESP32 hardware flash encryption (`docs/ESP32.md`) | key in device eFuse / private pipeline | opaque — see `docs/ESP32.md` |
 
 The bootloader passes the ESP32 entries to the ESP32 unchanged: `flash_esp32`
 (`bootloader/app_c.c`) reads 0x200-byte blocks from the package and writes them with

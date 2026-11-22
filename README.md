@@ -53,7 +53,7 @@ rebuilt by this project; everything else is relayed from the original package by
 |---|---|---|---|---|---|---|
 | 0 | `flippydrive-bootloader.bin` | 0x000200 | 0x40600 | 0x10000000 | 0.4.1 | **this project, byte-identical** (RP2040; embeds the GameCube disc — see below) |
 | 1 | `flippydrive-main-ode.bin` | 0x040a00 | 0x1b800 | 0x10080000 | 0.4.1 | **this project, byte-identical** (RP2040) |
-| 2 | `esp_bootldr.bin` | 0x05c400 | 0x0ac00 | 0x00000000 | 0.2.0 | original bytes — encrypted ESP32 image, no source (`docs/THIRD_PARTY.md`) |
+| 2 | `esp_bootldr.bin` | 0x05c400 | 0x0ac00 | 0x00000000 | 0.2.0 | original bytes — ESP32 flash-encrypted, no source (`docs/ESP32.md`) |
 | 3 | `esp_parttab.bin` | 0x067200 | 0x00e00 | 0x0000f000 | 0.2.1 | original bytes — encrypted ESP32 partition table |
 | 4 | `stub.bin` | 0x068200 | 0x008dc | — | 0.0.0 | original bytes — Swiss `STUBHAXX` stub (third-party) |
 | 5 | `backup.dol` | 0x068e00 | 0x56340 | — | 0.0.0 | original bytes — FlippyDrive disc-backup tool, no public source |
@@ -64,7 +64,9 @@ rebuilt by this project; everything else is relayed from the original package by
 
 ESP32 entries (2, 3, 9) carry ESP32 flash offsets as their load address; the DOLs (4–8) hold
 their own load addresses inside the DOL format, so the header shows 0. Entries 4–8 are
-GameCube payloads; what each is and where its source lives is in `docs/THIRD_PARTY.md`.
+GameCube payloads; what each is and where its source lives is in `docs/THIRD_PARTY.md`. The
+ESP32 entries are flash-encrypted and cannot be rebuilt from source; `docs/ESP32.md` has the
+analysis and the only (on-device) route that could decrypt them.
 
 ### Inside the bootloader image (entry 0)
 
