@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ghidra": {
+      "command": "C:\Tools\ghidra-mcp-venv\Scripts\pyghidra-mcp.exe",
+      "args": ["--project-path", "F:\flippydrive-fw\ghidra\flippydrive.gpr"],
+      "env": {
+        "GHIDRA_INSTALL_DIR": "C:\Tools\ghidra_12.2_PUBLIC",
+        "JAVA_HOME": "C:\Tools\openjdk-26.0.2_windows-x64_bin\jdk-26.0.2"
+      }
+    }
+  }
+}

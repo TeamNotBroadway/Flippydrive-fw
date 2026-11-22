@@ -1,0 +1,57 @@
+; 4-bit link on GPIO12-15, clocked by GPIO16, selected by GPIO17 (active low). Program
+; names are the firmware's (its log strings); bodies are disassembled from the image.
+
+.program qspi_out_status
+    wait 0 gpio 17
+.wrap_target
+loop:
+    wait 0 gpio 16
+    wait 1 gpio 16
+    jmp x-- loop [1]
+    mov isr, status
+    push block
+.wrap
+
+.program qspi_out
+    wait 0 gpio 17
+.wrap_target
+    out pins, 4 [1]
+    wait 0 gpio 16
+    wait 1 gpio 16
+.wrap
+
+.program qspi_in
+    wait 0 gpio 17
+.wrap_target
+    wait 1 gpio 16
+    in pins, 4
+    wait 0 gpio 16
+.wrap
+
+% c-sdk {
+static inline void qspi_out_program_init(PIO pio, uint sm, uint offset, uint pin)
+{
+    pio_sm_config c = qspi_out_program_get_default_config(offset);
+    sm_config_set_out_pins(&c, pin, 4);
+    for (uint i = pin; i < pin + 4; i++)
+        pio_gpio_init(pio, i);
+    sm_config_set_out_shift(&c, false, true, 32);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+static inline void qspi_out_status_program_init(PIO pio, uint sm, uint offset)
+{
+    pio_sm_config c = qspi_out_status_program_get_default_config(offset);
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+static inline void qspi_in_program_init(PIO pio, uint sm, uint offset, uint pin)
+{
+    pio_sm_config c = qspi_in_program_get_default_config(offset);
+    sm_config_set_in_pins(&c, pin);
+    sm_config_set_in_shift(&c, false, true, 32);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+    pio_sm_init(pio, sm, offset, &c);
+}
+%}

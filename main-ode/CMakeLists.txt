@@ -1,0 +1,12 @@
+add_executable(flippydrive-main-ode main.c di.c diskio.c ioexp.c log.c qspi.c audio.c adpcm.c ext.c ram_a.c ram_b.c ram_c.c ram_d.c ram_e.c ram_f.c flash_b.c ram_g.c ram_h.c pending.c)
+target_include_directories(flippydrive-main-ode PRIVATE ${CMAKE_SOURCE_DIR}/common)
+target_compile_definitions(flippydrive-main-ode PRIVATE FD_VERSION="${FD_VERSION}")
+target_link_libraries(flippydrive-main-ode pico_stdlib pico_multicore hardware_i2c hardware_pio
+    hardware_dma hardware_flash fatfs)
+pico_generate_pio_header(flippydrive-main-ode ${CMAKE_CURRENT_LIST_DIR}/qspi.pio)
+pico_set_linker_script(flippydrive-main-ode ${CMAKE_CURRENT_SOURCE_DIR}/memmap_main_ode.ld)
+pico_set_program_name(flippydrive-main-ode flippydrive-main-ode)
+pico_set_program_version(flippydrive-main-ode ${FD_VERSION})
+pico_enable_stdio_usb(flippydrive-main-ode 1)
+pico_enable_stdio_uart(flippydrive-main-ode 0)
+pico_add_bin_output(flippydrive-main-ode)

@@ -1,0 +1,10 @@
+/build/
+original/extracted/
+/ghidra/
+/decomp/
+/syms/*.lib.tsv
+__pycache__/
+/original/versions/
+/permute_out/
+/docs/ref/
+/original/update.fpkg
