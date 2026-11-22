@@ -60,7 +60,9 @@ MD5s. Format notes are in `tools/fpkg.py`.
 `python -I tools/gcdisc.py original/extracted/flippydrive-bootloader.bin
 original/extracted/gc` extracts the GameCube disc and the payload's textures.
 
-The build does not produce an `update.fpkg`: there is no packer yet.
+`tools/fpkg.py --pack` writes an `update.fpkg` from the original with chosen entries replaced
+(see Build). The ESP32 firmware, swiss-gc, cubeboot, `remote.dol`, `backup.dol` and
+`stub.bin` entries always come from the original: they are not part of this project.
 
 ## Build
 
@@ -92,5 +94,17 @@ wsl.exe -d Ubuntu --cd F:\flippydrive-fw -- python3 tools/rp_exact.py main-ode
 ```
 
 Output in WSL: `~/fd-build/exact-{bootloader,main-ode}/`.
+
+To package the built images, copy them out of WSL and pack them into a copy of the original
+(entries are matched by file name; the others are kept):
+
+```
+wsl.exe -d Ubuntu --cd F:/flippydrive-fw -- sh -c "mkdir -p build && cp ~/fd-build/exact-*/flippydrive-*.bin build/"
+python -I tools/fpkg.py --pack original/update.fpkg build/update.fpkg build/flippydrive-bootloader.bin build/flippydrive-main-ode.bin
+```
+
+With the exact images the result is identical to the original `update.fpkg`
+(SHA-256 867a7fd8…1af0b1b). A package holding C-build images unpacks with valid MD5s, but
+whether the updater accepts entries whose size differs from the original's is untested.
 
 See `docs/PLAN.md` for the toolchain evidence and the approach.
