@@ -41,29 +41,56 @@ Known broken or unverified (details in `docs/HACKS.md`):
 | GameCube `apploader.img` (disc 0x2440) | 0x81200000 | 0x2394 | f9c16679…bad319f6b | identical (gc-boot-tools) |
 | GameCube `payload.dol` (gzipped inside `main.dol`) | 0x80003100 | 0x462a0 | b855c27e…1413d76a4 | identical; application 55/55 functions C, 51 matching (the other 4 built from the original's code); constants and strings `.incbin`'d |
 
-## Original package required
+## Package contents
 
-The build needs the 1.4.6 `update.fpkg` at `original/update.fpkg`. It is not in the
-repository. The GameCube payload build takes these from it, so that vendor code and art are
-not redistributed:
+`update.fpkg` 1.4.6 is an `FPK1` container of ten entries (0x2d5200 bytes total; format in
+`tools/fpkg.py`). Each row below is one entry: its offset in the package, payload length,
+header load address, header version, and how it is reproduced. Only the two RP2040 images are
+rebuilt by this project; everything else is relayed from the original package by
+`tools/fpkg.py --pack`.
 
-- the font and logo textures;
-- the code of the four functions whose C does not match yet;
-- the float constants and strings, which are `.incbin`'d.
+| # | Entry | fpkg offset | Length | Load | Ver | Reproduced |
+|---|---|---|---|---|---|---|
+| 0 | `flippydrive-bootloader.bin` | 0x000200 | 0x40600 | 0x10000000 | 0.4.1 | **this project, byte-identical** (RP2040; embeds the GameCube disc — see below) |
+| 1 | `flippydrive-main-ode.bin` | 0x040a00 | 0x1b800 | 0x10080000 | 0.4.1 | **this project, byte-identical** (RP2040) |
+| 2 | `esp_bootldr.bin` | 0x05c400 | 0x0ac00 | 0x00000000 | 0.2.0 | original bytes — encrypted ESP32 image, no source (`docs/THIRD_PARTY.md`) |
+| 3 | `esp_parttab.bin` | 0x067200 | 0x00e00 | 0x0000f000 | 0.2.1 | original bytes — encrypted ESP32 partition table |
+| 4 | `stub.bin` | 0x068200 | 0x008dc | — | 0.0.0 | original bytes — Swiss `STUBHAXX` stub (third-party) |
+| 5 | `backup.dol` | 0x068e00 | 0x56340 | — | 0.0.0 | original bytes — FlippyDrive disc-backup tool, no public source |
+| 6 | `remote.dol` | 0x0bf400 | 0x42660 | 0x80003100 | 0.0.0 | original bytes — FlippyDrive remote-access tool, no public source |
+| 7 | `cubeboot.dol` | 0x101e00 | 0x36cb0 | — | 0.0.0 | original bytes — OffBroadway/cubeboot beta-rc15 (not rebuilt) |
+| 8 | `swiss-gc.dol` | 0x138e00 | 0xb36e0 | — | 0.0.0 | original bytes — swiss-gc @40a65cb3 (not rebuilt) |
+| 9 | `esp_ode.bin` | 0x1ec800 | 0xe8800 | 0x00060000 | 0.2.2 | original bytes — encrypted ESP32 application, no source |
 
-The RP2040 C build takes nothing from it directly; the bootloader embeds the GameCube disc.
-The RP2040 exact build takes every byte that is not a matching C function from the original
-images.
+ESP32 entries (2, 3, 9) carry ESP32 flash offsets as their load address; the DOLs (4–8) hold
+their own load addresses inside the DOL format, so the header shows 0. Entries 4–8 are
+GameCube payloads; what each is and where its source lives is in `docs/THIRD_PARTY.md`.
 
-`python -I tools/fpkg.py original/update.fpkg original/extracted` unpacks it and checks the
-MD5s. Format notes are in `tools/fpkg.py`.
-`python -I tools/gcdisc.py original/extracted/flippydrive-bootloader.bin
-original/extracted/gc` extracts the GameCube disc and the payload's textures.
+### Inside the bootloader image (entry 0)
 
-`tools/fpkg.py --pack` writes an `update.fpkg` from the original with chosen entries replaced
-(see Build). The ESP32 firmware, swiss-gc, cubeboot, `remote.dol`, `backup.dol` and
-`stub.bin` entries always come from the original: they are not part of this project.
-`docs/THIRD_PARTY.md` lists what each one is and where its source is, where one is public.
+The bootloader embeds a bootable GameCube disc, which in turn nests the payload. These are not
+separate package entries; they are rebuilt and reassembled to reconstruct
+`flippydrive-bootloader.bin` byte-for-byte (SHA-256s and status in the Targets table):
+
+- GameCube disc image, at bootloader offset 0x2d0 (`gamecube/disc`);
+- `apploader.img` at disc offset 0x2440, loads at 0x81200000 (`gamecube/apploader`);
+- `main.dol` (the GameCube stub) loads at 0x81100000 (`gamecube/stub`);
+- `payload.dol`, gzipped inside `main.dol`, loads at 0x80003100 (`gamecube/payload`).
+
+### What the build needs from the original
+
+The 1.4.6 `update.fpkg` must be at `original/update.fpkg` (not in the repository). The GameCube
+**payload** build takes a few things from it directly, so that vendor code and art are not
+redistributed: the font and logo textures, the code of the four payload functions whose C does
+not match yet, and the float constants and strings (all `.incbin`'d). The RP2040 C build takes
+nothing from it directly; the RP2040 exact build takes every byte that is not a matching C
+function from the original images.
+
+`python -I tools/fpkg.py original/update.fpkg original/extracted` unpacks every entry and
+checks its MD5. `python -I tools/gcdisc.py original/extracted/flippydrive-bootloader.bin
+original/extracted/gc` extracts the GameCube disc and the payload's textures. `--pack` writes a
+new `update.fpkg` (see Build): the eight non-RP2040 entries are copied from the original
+unchanged — none is reproduced from source.
 
 ## Build
 
