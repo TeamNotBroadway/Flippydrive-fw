@@ -17,11 +17,11 @@ The known problems below are in the C build.
 Known broken or unverified (details in `docs/HACKS.md`):
 
 - Bootloader ESP32 update: the port layer and update calls are decompiled
-  (`bootloader/esp_port.c`), but the esp-serial-flasher library under them is the public
-  source, not the original's modified copy, and `esp_loader_flash_start` is known to differ.
+  (`bootloader/esp_port.c`), but under them esp-serial-flasher's `esp_loader_flash_start` and
+  `esp_loader_connect` are the public source, not the original's modified fork (`docs/HACKS.md`).
   A bad bootloader may not be recoverable.
-- FatFs and esp-serial-flasher are the public sources; the original used modified copies,
-  whose changes are not known yet.
+- esp-serial-flasher matches the original but for those two `esp_loader.c` functions; FatFs is
+  effectively unmodified. Both are vendored as the public sources (`docs/HACKS.md`).
 - Functions that are not exact matches (bootloader 21 of 68, main-ode 30 of 95 scored
   functions) are checked for call order only. Conditions, constants and stores can still
   differ from the original.

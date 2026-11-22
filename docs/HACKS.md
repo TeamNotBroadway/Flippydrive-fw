@@ -42,10 +42,21 @@ Placeholders and guesses that a byte-identical build currently depends on.
   filter test) do not match yet.
 - Both linker scripts add an `.image_header` section after `.reset`. The original may instead
   have used an existing section name; the bytes are the same either way.
-- `third_party/fatfs` (R0.15) and `third_party/esp-serial-flasher` (3937d49) are still the
-  unmodified public sources. The original used modified copies (`docs/PLAN.md`); the vendored
-  files are to be edited until they match, and until then FatFs, esp-serial-flasher and
-  everything placed after them differ from the original.
+- `third_party/fatfs` (R0.15) and `third_party/esp-serial-flasher` (3937d49) are the
+  public sources. Measured with `tools/libmatch.py` (function sections found byte-for-byte in
+  the bootloader image):
+  - esp-serial-flasher: 21 of 25 functions match verbatim. The fork's changes are confined to
+    `src/esp_loader.c`: `esp_loader_flash_start` (original at 0x20009a04 — larger stack frame,
+    `sub sp,#0x24` vs `#0x1c`, and reordered logic; our C scores 37/151) and
+    `esp_loader_connect` (0x20009980, 1/14). The MD5 code, `loader_md5_cmd` and
+    `loader_flash_end_cmd` are absent from the image (`MD5_ENABLED=0`, dead-code-eliminated),
+    not modified.
+  - FatFs: libmatch finds 1 of 30 verbatim, but that is the section-anchor data addressing
+    (noted in `third_party/fatfs/CMakeLists.txt`), not a modification; FatFs is effectively
+    unmodified.
+  These are library functions, so the exact build takes them from the original's bytes and
+  stays identical. Matching the two `esp_loader.c` functions in source is a C-build-only gain
+  and needs the fork's changes reconstructed.
 - `gamecube/payload/source/main.c`: `boot_menu`, `boot_main_app`, `main_menu` and `main`
   have C under `NONMATCHING` that does not compile to the original (`main_menu`: the spill
   slots of the logo address and the version format string are swapped. Their costs tie, so
