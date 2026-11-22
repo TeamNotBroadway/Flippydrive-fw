@@ -250,7 +250,7 @@ __attribute__((noinline)) int __not_in_flash_func(install_file)(FIL *f, uint32_t
     if (res)
         return res;
     res = f_lseek(f, off + 0x200);
-    if (res) {
+    if (unlikely(res)) {
         f_close(&out);
         return res;
     }
@@ -264,14 +264,14 @@ __attribute__((noinline)) int __not_in_flash_func(install_file)(FIL *f, uint32_t
         if (n > 0x200)
             n = 0x200;
         res = f_read(f, xfer_buf, n, &br);
-        if (res) {
+        if (unlikely(res)) {
             printf("Unable to read update file during FAT programming %d\n", res);
             f_close(&out);
             return res;
         }
         fd_status.progress = __builtin_bswap16(pos * 1000 / len);
         res = f_write(&out, xfer_buf, br, &bw);
-        if (res || bw != br) {
+        if (unlikely(res || bw != br)) {
             printf("Unable to write Flash file during FAT programming %d\n", res);
             f_close(&out);
             return res;

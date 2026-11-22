@@ -58,3 +58,7 @@
 0x20009930	esp_flash_start
 0x20009964	esp_flash_write
 0x20009988	esp_flash_finish
+0x20003b1c	__aeabi_uidiv
+0x2000e578	f_read
+0x2000e0a8	f_open
+0x2000ee14	f_lseek
