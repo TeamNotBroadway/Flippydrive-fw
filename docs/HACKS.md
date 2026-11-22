@@ -45,18 +45,21 @@ Placeholders and guesses that a byte-identical build currently depends on.
 - `third_party/fatfs` (R0.15) and `third_party/esp-serial-flasher` (3937d49) are the
   public sources. Measured with `tools/libmatch.py` (function sections found byte-for-byte in
   the bootloader image):
-  - esp-serial-flasher: 21 of 25 functions match verbatim. The fork's changes are confined to
-    `src/esp_loader.c`: `esp_loader_flash_start` (original at 0x20009a04 — larger stack frame,
-    `sub sp,#0x24` vs `#0x1c`, and reordered logic; our C scores 37/151) and
-    `esp_loader_connect` (0x20009980, 1/14). The MD5 code, `loader_md5_cmd` and
-    `loader_flash_end_cmd` are absent from the image (`MD5_ENABLED=0`, dead-code-eliminated),
-    not modified.
+  - esp-serial-flasher: the fork's changes were confined to `src/esp_loader.c`, now matched
+    (Ghidra-decompiled from the original, `tools/ghidra/FdDecompAt.java`):
+    - `esp_loader_connect` (0x20009990): forces `s_target = ESP32_CHIP` after
+      `loader_detect_chip` (dropping the ESP8266 branch) and retries sync every 10 ms, not 100.
+    - `esp_loader_flash_start` (0x20009a04): adds `printf("Detected flash size: %u\n", ...)`
+      after `detect_flash_size` succeeds, before the image-size check. The printf's placement in
+      `esp_loader_flash_start` (not in `detect_flash_size`) is what keeps `flash_size` live in
+      the frame and makes the stack layout match.
+    Both are byte-exact (13/13 and 148/148 non-relocated windows). The MD5 code,
+    `loader_md5_cmd` and `loader_flash_end_cmd` are absent from the image (`MD5_ENABLED=0`,
+    dead-code-eliminated), not modified. The format strings are not byte-verified (they are
+    masked relocations into `.rodata`; the exact build takes the strings from the original).
   - FatFs: libmatch finds 1 of 30 verbatim, but that is the section-anchor data addressing
     (noted in `third_party/fatfs/CMakeLists.txt`), not a modification; FatFs is effectively
     unmodified.
-  These are library functions, so the exact build takes them from the original's bytes and
-  stays identical. Matching the two `esp_loader.c` functions in source is a C-build-only gain
-  and needs the fork's changes reconstructed.
 - `gamecube/payload/source/main.c`: `boot_menu`, `boot_main_app`, `main_menu` and `main`
   have C under `NONMATCHING` that does not compile to the original (`main_menu`: the spill
   slots of the logo address and the version format string are swapped. Their costs tie, so
