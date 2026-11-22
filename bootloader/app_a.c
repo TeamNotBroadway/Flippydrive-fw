@@ -48,26 +48,14 @@ void usb_uart_bridge(void)
     busy_wait_ms(10);
     expander_set(5, 1);
     for (;;) {
-        if (!tud_cdc_n_available(0)) {
-            if (uart0_hw->fr & 0x10)
-                continue;
-            goto drain;
+        if (tud_cdc_n_available(0)) {
+            uint8_t b = tud_cdc_n_read(0, &c, 1) ? c : 0xff;
+            if (b == bridge_escape)
+                uart_putc_raw(uart0, '\r');
+            uart_putc_raw(uart0, b);
         }
-        uint32_t b;
-        if (tud_cdc_n_read(0, &c, 1) == 0)
-            b = 0xff;
-        else
-            b = c;
-        if (bridge_escape == (int)b) {
-            while (uart0_hw->fr & 0x20) {}
-            uart0_hw->dr = 0xd;
-        }
-        while (uart0_hw->fr & 0x20) {}
-        uart0_hw->dr = b;
-        if (!(uart0_hw->fr & 0x10)) {
-        drain:
-            while (uart0_hw->fr & 0x10) {}
-            c = (uint8_t)uart0_hw->dr;
+        if (uart_is_readable(uart0)) {
+            c = uart_getc(uart0);
             tud_cdc_n_write(0, &c, 1);
             tud_cdc_n_write_flush(0);
         }
