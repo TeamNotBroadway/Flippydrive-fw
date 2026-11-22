@@ -138,9 +138,8 @@ void scan_dols(void)
         size_t len = strlen(fno.fname);
         if (len > 4 && fno.fname[len - 4] == '.' && (fno.fname[len - 3] & ~0x20) == 'D' &&
             (fno.fname[len - 2] & ~0x20) == 'O' && (fno.fname[len - 1] & ~0x20) == 'L') {
-            char *dst = dol_list.name[n];
-            strncpy(dst, fno.fname, 0x28);
-            dst[0x27] = attr;
+            strncpy(dol_list.name[n], fno.fname, 0x28);
+            dol_list.name[n][0x27] = attr;
             if (unlikely(++n > 7))
                 break;
         }
