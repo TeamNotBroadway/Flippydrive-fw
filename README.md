@@ -18,7 +18,7 @@ Known broken or unverified (details in `docs/HACKS.md`):
   A bad bootloader may not be recoverable.
 - FatFs and esp-serial-flasher are the public sources; the original used modified copies,
   whose changes are not known yet.
-- Functions that are not exact matches (bootloader 23 of 68, main-ode 30 of 95 scored
+- Functions that are not exact matches (bootloader 22 of 68, main-ode 30 of 95 scored
   functions) are checked for call order only. Conditions, constants and stores can still
   differ from the original.
 - Some main-ode globals are unidentified, and their sizes are guessed.
@@ -28,7 +28,7 @@ Known broken or unverified (details in `docs/HACKS.md`):
 
 | Image | Load | Size | SHA-256 | Status |
 |---|---|---|---|---|
-| `flippydrive-bootloader.bin` | 0x10000000 | 0x40600 | fe5e5047…a0c64bf7e | links; 45 of 68 scored functions exact |
+| `flippydrive-bootloader.bin` | 0x10000000 | 0x40600 | fe5e5047…a0c64bf7e | links; 46 of 68 scored functions exact |
 | `flippydrive-main-ode.bin` | 0x10080000 | 0x1b800 | cadba959…ec7be7f34 | links; 65 of 95 scored functions exact |
 | GameCube disc image (bootloader 0x100002d0) | — | 0x258f4 | 1996f511…7e92af267 | identical (gc-boot-tools `create_iso_header`) |
 | GameCube `main.dol` (in the bootloader's disc image) | 0x81100000 | 0x1d8f4 | 1b787f13…b08dc4c49 | identical |

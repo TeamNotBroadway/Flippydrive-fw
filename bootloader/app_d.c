@@ -310,9 +310,7 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
 {
     pio_sm_set_enabled(pio1, qspi_in_sm, false);
     pio_sm_set_consecutive_pindirs(pio1, qspi_out_sm, 12, 4, true);
-    while (pio_sm_is_tx_fifo_full(pio1, qspi_out_status_sm))
-        ;
-    pio_sm_put(pio1, qspi_out_status_sm, len * 2 - 1);
+    pio_sm_put_blocking(pio1, qspi_out_status_sm, len * 2 - 1);
     pio_sm_exec_wait_blocking(pio1, qspi_out_status_sm, 0x80a0);
     pio_sm_exec_wait_blocking(pio1, qspi_out_status_sm, 0xa027);
     pio_set_sm_mask_enabled(pio1, 1u << qspi_out_sm, true);
@@ -328,27 +326,28 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
     while (gpio_get(17))
         ;
     gpio_put(20, 1);
-    uint64_t t0 = time_us_64();
+    absolute_time_t t0 = get_absolute_time();
     while (pio_sm_is_rx_fifo_empty(pio1, qspi_out_status_sm)) {
-        if (time_us_64() - t0 > 0x3d0ce7) {
-            puts("QSPI timeout!");
-            dma_channel_cleanup(ch);
-            dma_channel_unclaim(ch);
-            qspi_reset_sms();
-            return 1;
-        }
+        if (absolute_time_diff_us(t0, get_absolute_time()) > 0x3d0ce7)
+            goto timeout;
     }
-    (void)pio_sm_get(pio1, qspi_out_status_sm);
+    (void)pio_sm_get_blocking(pio1, qspi_out_status_sm);
     dma_channel_cleanup(ch);
     dma_channel_unclaim(ch);
     esp_remaining = cont;
-    if (cont == 0) {
-        qspi_reset_sms();
-    } else {
-        pio_sm_set_enabled(pio1, qspi_out_status_sm, false);
+    if (cont != 0) {
         pio_sm_set_enabled(pio1, qspi_out_sm, false);
+        pio_sm_set_enabled(pio1, qspi_out_status_sm, false);
         pio_sm_set_consecutive_pindirs(pio1, qspi_in_sm, 12, 4, false);
         pio_sm_set_enabled(pio1, qspi_in_sm, true);
+    } else {
+        qspi_reset_sms();
     }
     return 0;
+timeout:
+    puts("QSPI timeout!");
+    dma_channel_cleanup(ch);
+    dma_channel_unclaim(ch);
+    qspi_reset_sms();
+    return 1;
 }

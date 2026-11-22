@@ -7,6 +7,7 @@
 #include "hardware/gpio.h"
 #include "esp_loader.h"
 #include "serial_io.h"
+#include "bootloader.h"
 
 void expander_set(uint8_t pin, bool on);
 esp_loader_error_t loader_sync_cmd(void);
@@ -101,28 +102,28 @@ esp_loader_error_t connect_to_target(uint32_t higher_baudrate)
     esp_port_init(&config);
     esp_loader_connect_args_t connect_config = {.sync_timeout = 10, .trials = 20};
     esp_loader_error_t err = esp_loader_connect(&connect_config);
-    if (err != ESP_LOADER_SUCCESS) {
+    if (unlikely(err != ESP_LOADER_SUCCESS)) {
         printf("Cannot connect to target. Error: %u\n", err);
         return err;
     }
-    if (higher_baudrate == 115200 || esp_loader_get_target() == ESP8266_CHIP)
-        return ESP_LOADER_SUCCESS;
-    err = esp_loader_change_baudrate(higher_baudrate);
-    if (err == ESP_LOADER_ERROR_UNSUPPORTED_FUNC) {
-        printf("ESP8266 does not support change baudrate command.\n");
-        return err;
+    if (higher_baudrate != 115200 && esp_loader_get_target() != ESP8266_CHIP) {
+        err = esp_loader_change_baudrate(higher_baudrate);
+        if (err == ESP_LOADER_ERROR_UNSUPPORTED_FUNC) {
+            printf("ESP8266 does not support change baudrate command.\n");
+            return err;
+        } else if (unlikely(err != ESP_LOADER_SUCCESS)) {
+            printf("Unable to change baud rate on target.\n");
+            return err;
+        } else {
+            uint current = uart_set_baudrate(uart0, higher_baudrate);
+            if (unlikely(current != higher_baudrate)) {
+                printf("current_baud = %d\n", current);
+                printf("Unable to change baud rate.\n");
+                return ESP_LOADER_ERROR_FAIL;
+            }
+            printf("Baudrate changed\n");
+        }
     }
-    if (err != ESP_LOADER_SUCCESS) {
-        printf("Unable to change baud rate on target.\n");
-        return err;
-    }
-    uint current = uart_set_baudrate(uart0, higher_baudrate);
-    if (current != higher_baudrate) {
-        printf("current_baud = %d\n", current);
-        printf("Unable to change baud rate.\n");
-        return ESP_LOADER_ERROR_FAIL;
-    }
-    printf("Baudrate changed\n");
     return ESP_LOADER_SUCCESS;
 }
 
