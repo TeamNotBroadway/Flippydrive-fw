@@ -72,7 +72,7 @@ void __not_in_flash_func(di_gpio_irq)(uint gpio, uint32_t events)
         gpio_put(DI_PIN_BRK, 0);
         gpio_set_dir(DI_PIN_BRK, GPIO_OUT);
         LOG("DI", "BRK received\n");
-        sleep_ms(50);
+        busy_wait_ms(50);
         gpio_set_dir(DI_PIN_BRK, GPIO_IN);
         di_sm_start();
     }

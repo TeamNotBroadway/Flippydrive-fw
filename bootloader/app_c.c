@@ -99,7 +99,7 @@ __attribute__((noinline)) FRESULT __not_in_flash_func(make_dirs)(const char *pat
     acc[0] = 0;
     strncpy(tmp, path, 255);
     tmp[255] = 0;
-    char *tok = strtok(tmp, "/");
+    char *tok = strtok(tmp, "/\\");
     if (unlikely(!tok))
         return FR_OK;
     do {
@@ -116,7 +116,7 @@ __attribute__((noinline)) FRESULT __not_in_flash_func(make_dirs)(const char *pat
         } else {
             return res;
         }
-        tok = strtok(NULL, "/");
+        tok = strtok(NULL, "/\\");
     } while (tok);
     return FR_OK;
 }

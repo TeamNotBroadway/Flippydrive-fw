@@ -101,12 +101,12 @@ void audio_stop(void)
     pio_sm_drain_tx_fifo(pio1, ai_sm);
     pio_sm_clear_fifos(pio1, ai_sm);
     pio_sm_restart(pio1, ai_sm);
-    dma_channel_set_irq0_enabled(aud_dma_b, false);
     dma_channel_set_irq0_enabled(aud_dma_a, false);
-    dma_channel_abort(aud_dma_b);
+    dma_channel_set_irq0_enabled(aud_dma_b, false);
     dma_channel_abort(aud_dma_a);
-    dma_channel_acknowledge_irq0(aud_dma_b);
+    dma_channel_abort(aud_dma_b);
     dma_channel_acknowledge_irq0(aud_dma_a);
+    dma_channel_acknowledge_irq0(aud_dma_b);
     aud_next_buf = 0;
     aud_reset_bufs();
 }
