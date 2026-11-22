@@ -78,4 +78,11 @@ are the reference: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/s
    secret), decrypt offline with `espsecure.py decrypt_flash_data --keyfile key.bin --address
    <offset> --flash_crypt_conf <cfg> <image> -o plain.bin`, using the flash offsets above.
 
+`tools/esp32_dump.py --port <PORT>` automates steps 2–4: it reads the eFuse summary, decides
+from the flash-encryption mode whether download-mode reads will be plaintext, dumps the flash,
+and classifies the three regions (0xE9 = decrypted). It is read-only (no eFuse burn, no flash
+write) and needs `pip install esptool`. It cannot drive IO0/EN over the FlippyDrive bridge, so
+the board must already be in download mode (direct wiring, or the FlippyDrive's own flow); its
+header documents both. Untested — no board was available when it was written.
+
 Until then the three ESP32 images stay opaque and are passed through unchanged.
