@@ -97,7 +97,7 @@ esp_loader_error_t esp_loader_connect(esp_loader_connect_args_t *connect_args)
             if (--trials == 0) {
                 return ESP_LOADER_ERROR_TIMEOUT;
             }
-            loader_port_delay_ms(100);
+            loader_port_delay_ms(10);
         } else if (err != ESP_LOADER_SUCCESS) {
             return err;
         }
@@ -105,15 +105,11 @@ esp_loader_error_t esp_loader_connect(esp_loader_connect_args_t *connect_args)
 
     RETURN_ON_ERROR( loader_detect_chip(&s_target, &s_reg) );
 
-    if (s_target == ESP8266_CHIP) {
-        err = loader_flash_begin_cmd(0, 0, 0, 0, s_target);
-    } else {
-        RETURN_ON_ERROR( loader_read_spi_config(s_target, &spi_config) );
-        loader_port_start_timer(DEFAULT_TIMEOUT);
-        err = loader_spi_attach_cmd(spi_config);
-    }
-
-    return err;
+    /* FlippyDrive fork: the target is always an ESP32, so force it and skip the ESP8266 path. */
+    s_target = ESP32_CHIP;
+    RETURN_ON_ERROR( loader_read_spi_config(s_target, &spi_config) );
+    loader_port_start_timer(DEFAULT_TIMEOUT);
+    return loader_spi_attach_cmd(spi_config);
 }
 
 target_chip_t esp_loader_get_target(void)
