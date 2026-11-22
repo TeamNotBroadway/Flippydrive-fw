@@ -63,6 +63,7 @@ original/extracted/gc` extracts the GameCube disc and the payload's textures.
 `tools/fpkg.py --pack` writes an `update.fpkg` from the original with chosen entries replaced
 (see Build). The ESP32 firmware, swiss-gc, cubeboot, `remote.dol`, `backup.dol` and
 `stub.bin` entries always come from the original: they are not part of this project.
+`docs/THIRD_PARTY.md` lists what each one is and where its source is, where one is public.
 
 ## Build
 
