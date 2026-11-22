@@ -83,9 +83,9 @@ __attribute__((noinline, noreturn)) void launch_app(uint32_t offset)
     systick_hw->csr &= ~1u;
     nvic_hw->icer = 0xffffffff;
     nvic_hw->icpr = 0xffffffff;
-    resets_hw->reset = 0xfffbedbf;
-    uint32_t sp = *(uint32_t *)base;
-    uint32_t pc = *(uint32_t *)(XIP_BASE + 4 + offset);
+    hw_set_bits(&resets_hw->reset, 0xfffbedbf);
+    uint32_t sp = *(volatile uint32_t *)base;
+    uint32_t pc = *(volatile uint32_t *)(XIP_BASE + 4 + offset);
     scb_hw->vtor = base;
     __asm volatile("msr msp, %0 \n bx %1" : : "r"(sp), "r"(pc));
     for (;;)
