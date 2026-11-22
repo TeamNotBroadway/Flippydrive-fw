@@ -176,7 +176,7 @@ __attribute__((noinline)) int __not_in_flash_func(flash_esp32)(FIL *f, uint32_t 
     do {
         UINT br;
         res = f_read(f, xfer_buf, 0x200, &br);
-        if (res) {
+        if (unlikely(res)) {
             cdc_printf("Read ESP32 ERROR %d\n", res);
             return res;
         }
@@ -184,7 +184,7 @@ __attribute__((noinline)) int __not_in_flash_func(flash_esp32)(FIL *f, uint32_t 
             break;
         fd_status.progress = __builtin_bswap16(progress / blocks);
         res = esp_flash_write(addr, xfer_buf, 0x200);
-        if (res) {
+        if (unlikely(res)) {
             cdc_printf("Write ESP32 ERROR\n");
             return res;
         }
