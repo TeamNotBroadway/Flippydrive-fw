@@ -73,6 +73,25 @@ def main():
 
     espefuse, esptool = tool("espefuse"), tool("esptool")
 
+    # 0. chip and silicon revision ----------------------------------------------------------
+    # esptool's connection banner reports the exact part and revision, e.g.
+    #   "Chip is ESP32-D0WD-V3 (revision v3.0)". The revision decides whether the release-mode
+    # hardware key-extraction fallback (docs/ESP32.md) is even feasible.
+    print("\n[0] Identifying the chip ...")
+    r = run(esptool + common + ["flash_id"])
+    banner = r.stdout
+    (out / "chip_id.txt").write_text(banner)
+    chip = next((l.strip() for l in banner.splitlines() if l.strip().startswith("Chip is")), None)
+    revm = re.search(r"revision\s*v?(\d+)(?:\.(\d+))?", banner, re.IGNORECASE)
+    rev = int(revm.group(1)) if revm else None
+    print("  " + (chip or "chip not reported; see chip_id.txt"))
+    if rev is not None:
+        note = ("v0/v1 — vulnerable to published voltage-glitch key extraction (LimitedResults)"
+                if rev <= 1 else
+                "v2 — intermediate; some fault-injection mitigations" if rev == 2 else
+                "v3+ — hardened; no public key-extraction attack")
+        print(f"  Silicon revision v{rev}: {note}")
+
     # 1. eFuse state ------------------------------------------------------------------------
     print("\n[1] Reading eFuse summary ...")
     r = run(espefuse + ["--port", args.port] + (before or []) + ["summary"])

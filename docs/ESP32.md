@@ -52,6 +52,24 @@ Checked, all 1.4.6 unless noted:
 
 The packer and the key are in a private build pipeline.
 
+## Determining the chip and silicon revision
+
+We know the **variant** is the original ESP32 (not S2/S3/C3): `esp_loader_connect` forces
+`ESP32_CHIP`, which also fixes the flash-encryption algorithm (AES-256 address-tweaked, not
+XTS-AES). The variant cannot be narrowed further offline — the RP2040 only records "ESP32", and
+the images are encrypted.
+
+The **silicon revision** (v0/v1/v2/v3) can only be read from the board, and it matters: it
+decides whether the release-mode hardware key-extraction fallback below is feasible (v0/v1 are
+vulnerable to published voltage-glitch attacks, v3 is hardened). Three ways to read it:
+
+- esptool's connection banner prints it, e.g. `Chip is ESP32-D0WD-V3 (revision v3.0)`;
+  `tools/esp32_dump.py` runs `esptool flash_id` first and reports the revision and its attack
+  implication.
+- `espefuse.py summary` shows the `WAFER_VERSION` / `CHIP_VERSION` eFuses it is derived from.
+- The chip or module silkscreen: the part number (`ESP32-D0WD-V3` vs `-D0WDQ6`) and date code
+  identify the revision without any tooling.
+
 ## The only route: on-device (needs the physical board)
 
 The key cannot be rebuilt offline. With a FlippyDrive in hand it may be possible to obtain the
