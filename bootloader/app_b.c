@@ -28,7 +28,7 @@
 void expander_set(uint pin, bool on);
 void expander_init(void);
 void expander_set_config(uint8_t config);
-void usb_uart_bridge(void);
+__attribute__((noreturn)) void usb_uart_bridge(void);
 void qspi_init(void);
 int install_update(const char *path);
 void bootloader_fs_init(void);
