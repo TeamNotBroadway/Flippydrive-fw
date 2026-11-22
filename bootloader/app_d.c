@@ -214,6 +214,23 @@ static inline pio_sm_config di_program_get_default_config(uint offset)
     return c;
 }
 
+static inline void di_program_init(PIO pio, uint sm, uint offset)
+{
+    pio_sm_config c = di_program_get_default_config(offset);
+    sm_config_set_out_pins(&c, 0, 8);
+    sm_config_set_set_pins(&c, 0, 0);
+    pio_sm_set_consecutive_pindirs(pio, sm, DI_PIN_DSTRB, 1, true);
+    sm_config_set_sideset_pins(&c, DI_PIN_DSTRB);
+    sm_config_set_jmp_pin(&c, 25);
+    sm_config_set_in_shift(&c, false, true, 32);
+    sm_config_set_out_shift(&c, true, true, 32);
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_exec(pio, sm, pio_encode_set(pio_x, 8) | pio_encode_sideset(1, 1));
+    pio_sm_exec(pio, sm, pio_encode_set(pio_y, 2) | pio_encode_sideset(1, 1));
+    gpio_set_function(DI_PIN_DSTRB, GPIO_FUNC_PIO0);
+    pio_sm_set_enabled(pio, sm, true);
+}
+
 void __not_in_flash_func(core1_entry)(void)
 {
     flash_safe_execute_core_init();
@@ -233,19 +250,7 @@ void __not_in_flash_func(core1_entry)(void)
     cdc_printf("DI di_program offset %d\n", di_offset);
     di_dir_sm_init(dir_sm_lo, dir_off, 0);
     di_dir_sm_init(dir_sm_hi, dir_off, 4);
-    pio_sm_config c = di_program_get_default_config(di_offset);
-    sm_config_set_out_pins(&c, 0, 8);
-    sm_config_set_set_pins(&c, 0, 0);
-    pio_sm_set_consecutive_pindirs(pio0, di_sm, DI_PIN_DSTRB, 1, true);
-    sm_config_set_sideset_pins(&c, DI_PIN_DSTRB);
-    sm_config_set_jmp_pin(&c, 25);
-    sm_config_set_in_shift(&c, false, true, 32);
-    sm_config_set_out_shift(&c, true, true, 32);
-    pio_sm_init(pio0, di_sm, di_offset, &c);
-    pio_sm_exec(pio0, di_sm, pio_encode_set(pio_x, 8) | pio_encode_sideset(1, 1));
-    pio_sm_exec(pio0, di_sm, pio_encode_set(pio_y, 2) | pio_encode_sideset(1, 1));
-    gpio_set_function(DI_PIN_DSTRB, GPIO_FUNC_PIO0);
-    pio_sm_set_enabled(pio0, di_sm, true);
+    di_program_init(pio0, di_sm, di_offset);
     gpio_set_irq_enabled(DI_PIN_BRK, GPIO_IRQ_EDGE_RISE, true);
     gpio_set_irq_enabled(DI_PIN_RESET, GPIO_IRQ_LEVEL_LOW | GPIO_IRQ_LEVEL_HIGH, true);
     for (;;) {
@@ -297,7 +302,7 @@ void __not_in_flash_func(esp_dma_read)(void *dst, uint32_t len, uint32_t *done, 
         ;
     gpio_put(20, 1);
     esp_remaining -= len;
-    if (async)
+    if (likely(async))
         return;
     dma_channel_wait_for_finish_blocking(esp_dma_ch);
     dma_channel_cleanup(esp_dma_ch);

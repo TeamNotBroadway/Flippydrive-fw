@@ -84,8 +84,8 @@ __attribute__((noinline, noreturn)) void launch_app(uint32_t offset)
     nvic_hw->icer = 0xffffffff;
     nvic_hw->icpr = 0xffffffff;
     hw_set_bits(&resets_hw->reset, 0xfffbedbf);
-    uint32_t sp = *(volatile uint32_t *)base;
-    uint32_t pc = *(volatile uint32_t *)(XIP_BASE + 4 + offset);
+    register uint32_t sp asm("r1") = *(volatile uint32_t *)base;
+    register uint32_t pc asm("r3") = *(volatile uint32_t *)(XIP_BASE + 4 + offset);
     scb_hw->vtor = base;
     __asm volatile("msr msp, %0 \n bx %1" : : "r"(sp), "r"(pc));
     for (;;)
