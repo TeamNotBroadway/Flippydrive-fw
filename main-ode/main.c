@@ -103,6 +103,7 @@ int main(void)
             if (queue_try_remove(&log_queue, &msg)) {
                 fputs(msg, stdout);
                 log_free(msg);
+                continue; // no-op; GCC's continue predictor gives the original block layout
             }
         }
         flush_task();

@@ -32,9 +32,6 @@ Placeholders and guesses that a byte-identical build currently depends on.
   `id_bitmap_set` (1/13).
   Global names in `ram_a.c`/`ram_b.c` that the worker guessed by role (QSPI SM/offset
   assignment, `esp_dma_ch`, `esp_remaining`) are unchecked.
-- `main-ode/main.c`: `main` is a near match (80 of 95 windows). GCC lays out the log-drain
-  loop without the original's duplicated 8-byte block on the success path; no source shape
-  tried reproduces it.
 - `main-ode/qspi.c`: `qspi_init` does not match yet (105 of 232 windows): register
   allocation and block order differ from the first log call on.
 - `main-ode/audio.c` `audio_fill` (163 of 377 windows) and `main-ode/adpcm.c`
