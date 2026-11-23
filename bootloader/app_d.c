@@ -254,9 +254,15 @@ void __not_in_flash_func(core1_entry)(void)
     gpio_set_irq_enabled(DI_PIN_BRK, GPIO_IRQ_EDGE_RISE, true);
     gpio_set_irq_enabled(DI_PIN_RESET, GPIO_IRQ_LEVEL_LOW | GPIO_IRQ_LEVEL_HIGH, true);
     for (;;) {
-        uint32_t a = pio_sm_get_blocking(pio0, di_sm);
-        uint32_t b = pio_sm_get_blocking(pio0, di_sm);
-        uint32_t d = pio_sm_get_blocking(pio0, di_sm);
+        while (pio_sm_is_rx_fifo_empty(pio0, di_sm))
+            ;
+        uint32_t a = pio0->rxf[di_sm];
+        while (pio_sm_is_rx_fifo_empty(pio0, di_sm))
+            ;
+        uint32_t b = pio0->rxf[di_sm];
+        while (pio_sm_is_rx_fifo_empty(pio0, di_sm))
+            ;
+        uint32_t d = pio0->rxf[di_sm];
         gpio_set_irq_enabled(DI_PIN_DIR, GPIO_IRQ_EDGE_FALL, true);
         if (di_dispatch(a, b, d)) {
             pio_sm_put_blocking(pio0, di_sm, 0);
