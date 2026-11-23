@@ -16,7 +16,7 @@ DIR root_dir;
 FIL di_file;
 int mount_h2, mount_h1;
 uint32_t esp_dma_ch;
-uint32_t esp_remaining;
+volatile uint32_t esp_remaining;
 bool esp_booted;
 uint8_t net_stream_active;
 uint8_t ipc_cfg_dirty;

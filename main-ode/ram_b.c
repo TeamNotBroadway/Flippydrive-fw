@@ -28,7 +28,7 @@ __attribute__((section(".mutex_array"))) mutex_t link_mutex;
 extern uint qspi_out_sm, qspi_out_status_sm, qspi_in_sm;
 extern uint qspi_out_offset, qspi_out_status_offset, qspi_in_offset;
 extern uint32_t esp_dma_ch;
-extern uint32_t esp_remaining;
+extern volatile uint32_t esp_remaining;
 
 void __not_in_flash_func(esp_dma_wait)(void)
 {
