@@ -62,6 +62,37 @@ void usb_uart_bridge(void)
     }
 }
 
+#ifdef FD_ESP_EXTRACT
+// Diagnostic build only (-DFD_ESP_EXTRACT, docs/ESP32.md). Not in the stock firmware; the
+// default build is byte-identical to the original. Like usb_uart_bridge, this drops the ESP32
+// into ROM download mode (boot/IO0 low, release reset) and bridges USB<->UART, but passes every
+// byte through verbatim -- no bridge_escape '\r' injection -- so esptool/espefuse's binary SLIP
+// protocol survives. Lets a host drive the ESP32 ROM through the FlippyDrive's USB.
+__attribute__((noreturn)) void clean_bridge(void)
+{
+    expander_set(7, false);
+    expander_set(5, false);
+    expander_set(0, false);
+    gpio_set_function(16, GPIO_FUNC_UART);
+    gpio_set_function(17, GPIO_FUNC_UART);
+    uart_init(uart0, 115200);
+    uart_set_format(uart0, 8, 1, UART_PARITY_NONE);
+    uart_set_fifo_enabled(uart0, false);
+    busy_wait_ms(10);
+    expander_set(5, true);
+    for (;;) {
+        uint8_t c;
+        if (tud_cdc_n_available(0) && tud_cdc_n_read(0, &c, 1))
+            uart_putc_raw(uart0, c);
+        if (uart_is_readable(uart0)) {
+            c = uart_getc(uart0);
+            tud_cdc_n_write(0, &c, 1);
+            tud_cdc_n_write_flush(0);
+        }
+    }
+}
+#endif
+
 DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
 {
     DRESULT r = 4;

@@ -78,8 +78,15 @@ are the reference: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/s
 
 1. **Reach the ESP32 ROM download mode.** The bootloader already exposes the ESP32's UART over
    USB (`usb_uart_bridge`) and drives its boot/reset lines (`loader_port_enter_bootloader`,
-   `bootloader/esp_port.c`): boot low, reset pulse, boot high. Drive those to drop the ESP32
-   into download mode, then talk to it with `esptool.py` / `espefuse.py`.
+   `bootloader/esp_port.c`): boot low, reset pulse, boot high. But `usb_uart_bridge` injects a
+   `\r` before every byte equal to `bridge_escape` (BSS-zero, so every `0x00` byte), which
+   corrupts esptool/espefuse's binary SLIP framing. The diagnostic build adds a **clean-bridge**
+   command for this: build with `-DFD_ESP_EXTRACT=ON`, send `0x11` on the USB-CDC control channel
+   (the stock bridge is `0x12`), and `clean_bridge` (`bootloader/app_a.c`) holds IO0 low, releases
+   reset into download mode, and bridges USB<->UART byte-for-byte with no escape injection. Then
+   run `esptool.py` / `espefuse.py` against that port. The command is `#ifdef`-guarded, so the
+   default build is byte-identical to the original; pack it into a recovery image with
+   `tools/recovery.py pack --bootloader` (see [RECOVERY.md](RECOVERY.md)).
 2. **Read the eFuse state:** `espefuse.py -p PORT summary`. The decisive bits are the flash
    encryption mode and `DISABLE_DL_DECRYPT` / `DISABLE_DL_CACHE`. `FLASH_CRYPT_CONFIG` is
    readable; the key block is read-protected and will not read back.
@@ -99,8 +106,9 @@ are the reference: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/s
 `tools/esp32_dump.py --port <PORT>` automates steps 2–4: it reads the eFuse summary, decides
 from the flash-encryption mode whether download-mode reads will be plaintext, dumps the flash,
 and classifies the three regions (0xE9 = decrypted). It is read-only (no eFuse burn, no flash
-write) and needs `pip install esptool`. It cannot drive IO0/EN over the FlippyDrive bridge, so
-the board must already be in download mode (direct wiring, or the FlippyDrive's own flow); its
-header documents both. Untested — no board was available when it was written.
+write) and needs `pip install esptool`. It does not itself toggle IO0/EN, so the board must
+already be in download mode: either direct wiring, or the clean-bridge command above (which does
+drive the lines) on an `-DFD_ESP_EXTRACT` build. Its header documents both. Untested — no board
+was available when it was written.
 
 Until then the three ESP32 images stay opaque and are passed through unchanged.

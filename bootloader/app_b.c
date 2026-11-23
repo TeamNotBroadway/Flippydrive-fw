@@ -29,6 +29,9 @@ void expander_set(uint pin, bool on);
 void expander_init(void);
 void expander_set_config(uint8_t config);
 __attribute__((noreturn)) void usb_uart_bridge(void);
+#ifdef FD_ESP_EXTRACT
+__attribute__((noreturn)) void clean_bridge(void);  /* diagnostic build only, docs/ESP32.md */
+#endif
 void qspi_init(void);
 int install_update(const char *path);
 void bootloader_fs_init(void);
@@ -515,6 +518,10 @@ int main(void)
             if (tud_cdc_n_read(0, &c, 1)) {
                 if (c == 0x12)
                     usb_uart_bridge();
+#ifdef FD_ESP_EXTRACT
+                if (c == 0x11)
+                    clean_bridge();
+#endif
                 if (c == 0x13)
                     update_and_boot();
             }
