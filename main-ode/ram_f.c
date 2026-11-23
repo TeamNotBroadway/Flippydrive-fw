@@ -243,8 +243,8 @@ void di_setup(void)
     pio_sm_init(pio0, sm, dir_offset, &c);
     pio_sm_set_enabled(pio0, sm, true);
 
-    uint offset = di_offset;
     sm = di_sm;
+    uint offset = di_offset;
     c = di_program_get_default_config(offset);
     sm_config_set_out_pins(&c, 0, 8);
     pio_sm_set_consecutive_pindirs(pio0, sm, DI_PIN_DSTRB, 1, true);

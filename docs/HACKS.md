@@ -28,7 +28,7 @@ Placeholders and guesses that a byte-identical build currently depends on.
   `esp_drain` (73/161), `flush_task` (7/22), `qspi_send` (39/213), `esp_dma_read` (4/69);
   `ram_c.c` `bypass_enter` (130/132); `ram_d.c` `cmd_read` (146/230, block layout);
   `ram_e.c` `cmd_ipc` (1294/2483, case-body order differs); `ram_f.c` `cmd_audio_config`
-  (287/379), `di_setup` (121/205), `aud_dma_irq` (82/192), `id_bitmap_test` (8/19),
+  (287/379), `aud_dma_irq` (82/192), `id_bitmap_test` (8/19),
   `id_bitmap_set` (1/13).
   Global names in `ram_a.c`/`ram_b.c` that the worker guessed by role (QSPI SM/offset
   assignment, `esp_dma_ch`, `esp_remaining`) are unchecked.

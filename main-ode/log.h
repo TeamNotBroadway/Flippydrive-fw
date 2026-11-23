@@ -17,12 +17,14 @@ void log_free(char *msg);
 #define LOG(tag, ...)                                                                   \
     do {                                                                                \
         if (get_core_num() == 1) {                                                      \
-            char *log_msg_;                                                             \
-            if (!queue_is_full(&log_queue) && (log_msg_ = log_alloc()) != NULL) {       \
-                snprintf(log_msg_, LOG_PREFIX_SIZE, "Core 1: %s ", tag);                \
-                snprintf(log_msg_ + strlen("Core 1: ") + strlen(tag) + 1,               \
-                         LOG_TEXT_SIZE, __VA_ARGS__);                                   \
-                queue_try_add(&log_queue, &log_msg_);                                   \
+            if (!queue_is_full(&log_queue)) {                                           \
+                char *log_msg_ = log_alloc();                                           \
+                if (log_msg_ != NULL) {                                                 \
+                    snprintf(log_msg_, LOG_PREFIX_SIZE, "Core 1: %s ", tag);            \
+                    snprintf(log_msg_ + strlen("Core 1: ") + strlen(tag) + 1,           \
+                             LOG_TEXT_SIZE, __VA_ARGS__);                               \
+                    queue_try_add(&log_queue, &log_msg_);                               \
+                }                                                                       \
             }                                                                           \
         } else {                                                                        \
             printf("Core 0: %s ", tag);                                                 \
