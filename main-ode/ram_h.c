@@ -33,7 +33,7 @@ int __not_in_flash_func(cmd_audio_status)(uint32_t a, uint32_t b, uint32_t c)
         LOG("DI", "AUDIO_STATUS LEN 0x%08X\n", aud_cur_len);
         break;
     case 1:
-        pio_sm_put_blocking(pio0, di_sm, ((aud_pos >> 10) & 0xff00) | (aud_pos >> 26) | ((aud_pos << 6) & 0xe00000));
+        pio_sm_put_blocking(pio0, di_sm, ((aud_pos >> 10) & 0xff00) | (aud_pos >> 26) | (((aud_pos >> 2) << 8) & 0xe00000));
         LOG("DI", "AUDIO_STATUS CUR_ADDR 0x%08X (read head 0x%08X)\n", (aud_pos >> 15) << 15, aud_cur_start);
         break;
     case 2: {
