@@ -12,7 +12,6 @@ extern struct ipc_cfg_t ipc_cfg;
 
 int config_ini_handler(void *user, const char *section, const char *name, const char *value)
 {
-    int ret = 1;
     if (strcasecmp(section, "network") == 0) {
         if (strcasecmp(name, "server") == 0)
             strncpy(ipc_cfg.server, value, 39);
@@ -33,7 +32,7 @@ int config_ini_handler(void *user, const char *section, const char *name, const 
             LOG("DI", "Config boot_mode set to %u\n", ini_result);
         }
     } else {
-        ret = 0;
+        return 0;
     }
-    return ret;
+    return 1;
 }
