@@ -27,7 +27,7 @@ struct esp_rx_buf esp_rx;
 __attribute__((section(".mutex_array"))) mutex_t link_mutex;
 extern uint qspi_out_sm, qspi_out_status_sm, qspi_in_sm;
 extern uint qspi_out_offset, qspi_out_status_offset, qspi_in_offset;
-extern int esp_dma_ch;
+extern uint32_t esp_dma_ch;
 extern uint32_t esp_remaining;
 
 void __not_in_flash_func(esp_dma_wait)(void)
@@ -57,29 +57,8 @@ void __not_in_flash_func(esp_dma_read)(void *dst, uint32_t len, uint32_t *done, 
         ;
     gpio_put(20, 1);
     esp_remaining -= len;
-    if (async)
-        return;
-    dma_channel_wait_for_finish_blocking(esp_dma_ch);
-    dma_channel_cleanup(esp_dma_ch);
-    dma_channel_unclaim(esp_dma_ch);
-}
-
-void __not_in_flash_func(flush_task)(void)
-{
-    mutex_enter_blocking(&link_mutex);
-    mutex_enter_blocking(&flash_mutex);
-    if (esp_rx.active) {
-        uint32_t rd = esp_rx.rd;
-        uint32_t wr = esp_rx.wr;
-        uint32_t len = wr - rd;
-        if (len) {
-            uint32_t done = 0;
-            esp_dma_read(esp_rx.data + (rd - esp_rx.base), len, &done, 0);
-            esp_rx.rd += done;
-        }
-    }
-    mutex_exit(&flash_mutex);
-    mutex_exit(&link_mutex);
+    if (!async)
+        esp_dma_wait();
 }
 
 #include "log.h"

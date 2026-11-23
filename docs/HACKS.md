@@ -24,7 +24,7 @@ Placeholders and guesses that a byte-identical build currently depends on.
 - `bootloader/app_c.c` holds `di_program` as raw words from the image (0x20018eb8).
 - Near matches written by the batch pass: `ext.c` `req_submit` (7/30), `ram_a.c`
   `di_worker` (148/179, two spill slots swapped) and `di_stream_file` (85/118), `ram_b.c`
-  `esp_drain` (73/161), `flush_task` (7/22), `qspi_send` (39/213), `esp_dma_read` (4/69);
+  `esp_drain` (73/161), `flush_task` (16/24, `ram_g.c`), `qspi_send` (39/213);
   `ram_c.c` `bypass_enter` (130/132); `ram_d.c` `cmd_read` (146/230, block layout);
   `ram_e.c` `cmd_ipc` (1294/2483, case-body order differs); `ram_f.c` `cmd_audio_config`
   (287/379), `aud_dma_irq` (82/192), `id_bitmap_test` (8/19),

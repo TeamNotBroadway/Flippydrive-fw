@@ -36,6 +36,24 @@ static inline uint32_t net_imm_max(void)
 static uint32_t net_last_addr, net_last_len;
 uint32_t net_readahead = 2;
 
+void __not_in_flash_func(flush_task)(void)
+{
+    mutex_enter_blocking(&link_mutex);
+    mutex_enter_blocking(&flash_mutex);
+    if (esp_rx.active) {
+        uint32_t rd = esp_rx.rd;
+        uint32_t wr = esp_rx.wr;
+        uint32_t len = wr - rd;
+        if (len) {
+            uint32_t done = 0;
+            esp_dma_read(esp_rx.data + (rd - esp_rx.base), len, &done, 0);
+            esp_rx.rd += done;
+        }
+    }
+    mutex_exit(&flash_mutex);
+    mutex_exit(&link_mutex);
+}
+
 int __not_in_flash_func(di_stream_net)(uint32_t addr, uint32_t len, uint sm, uint32_t fd)
 {
     uint32_t mult;
