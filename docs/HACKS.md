@@ -19,9 +19,8 @@ Placeholders and guesses that a byte-identical build currently depends on.
 - `ram_c.c` (`bypass_program`) and `ram_f.c` (`di_program`, `di_dir_program`) hold PIO
   programs as raw instruction words from the image, not `.pio` source.
 - `bootloader/esp_port.c` declares `expander_set(uint8_t, bool)`; `app_a.c` defines it with
-  `uint pin`. The calls match only with the narrow prototype. `connect_to_target` is a near
-  match. `esp_flash_finish` sends SYNC, not FLASH_END, as the original does. The bootloader
-  built from this tree is not tested.
+  `uint pin`. The calls match only with the narrow prototype. `esp_flash_finish` sends SYNC,
+  not FLASH_END, as the original does. The bootloader built from this tree is not tested.
 - `bootloader/app_c.c` holds `di_program` as raw words from the image (0x20018eb8).
 - Near matches written by the batch pass: `ext.c` `req_submit` (7/30), `ram_a.c`
   `di_worker` (148/179, two spill slots swapped) and `di_stream_file` (85/118), `ram_b.c`

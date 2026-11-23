@@ -96,6 +96,17 @@ void loader_port_debug_print(const char *str)
     printf("DEBUG: %s\n", str);
 }
 
+// Inlined into connect_to_target; the image has no separate copy.
+esp_loader_error_t loader_port_change_baudrate(uint32_t baudrate)
+{
+    uint current = uart_set_baudrate(uart0, baudrate);
+    if (current != baudrate) {
+        printf("current_baud = %d\n", current);
+        return ESP_LOADER_ERROR_FAIL;
+    }
+    return ESP_LOADER_SUCCESS;
+}
+
 esp_loader_error_t connect_to_target(uint32_t higher_baudrate)
 {
     esp_port_config_t config = {uart0, 16, 17, 18, 19, 5, 0};
@@ -111,15 +122,14 @@ esp_loader_error_t connect_to_target(uint32_t higher_baudrate)
         if (err == ESP_LOADER_ERROR_UNSUPPORTED_FUNC) {
             printf("ESP8266 does not support change baudrate command.\n");
             return err;
-        } else if (unlikely(err != ESP_LOADER_SUCCESS)) {
+        } else if (err != ESP_LOADER_SUCCESS) {
             printf("Unable to change baud rate on target.\n");
             return err;
         } else {
-            uint current = uart_set_baudrate(uart0, higher_baudrate);
-            if (unlikely(current != higher_baudrate)) {
-                printf("current_baud = %d\n", current);
+            err = loader_port_change_baudrate(higher_baudrate);
+            if (err != ESP_LOADER_SUCCESS) {
                 printf("Unable to change baud rate.\n");
-                return ESP_LOADER_ERROR_FAIL;
+                return err;
             }
             printf("Baudrate changed\n");
         }
