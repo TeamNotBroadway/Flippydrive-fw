@@ -238,6 +238,12 @@ Neither FatFs nor esp-serial-flasher is byte-identical to any public source:
   So the original is a locally modified fork; the firmware also has strings in neither
   (`current_baud = %d`, `Invalid flash image segment!`).
 
+FatFs's code page is 437 (`ff_uni2oem`/`ff_oem2uni` and ffunicode's `.rodata` place exactly;
+932 had been chosen before). A fuzzy re-sweep with 437 fixed (`tools/sweep/fatfs.json`,
+main-ode) raised the window score 2026 -> 2197 with no `ff.c` function exact; its config
+needs `get_fattime` and raised the bootloader's original bytes, so it is not used. No
+`ff.c` section places in either image: the remaining FatFs work is source-level.
+
 Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
 config, esp-serial-flasher 3937d49 with MD5 off) and will be decompiled like application code:
 each function edited until it compiles to the original's bytes, starting from the near-match
