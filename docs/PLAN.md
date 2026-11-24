@@ -262,8 +262,12 @@ longer hosted): unpatched R0.15 (`#if FS_LOCK` at ff.c:903) scores the same as p
 patches 2 (`FF_FS_REENTRANT` with several volumes) and 3 (`f_setlabel`) touch no code this
 config builds. Per function: `move_window` (main-ode 0x1008aa40) differs only in scheduling
 (the original loads before the `push`), and the original's function order differs from our
-build's (`remove_chain` directly follows `store_xdir`). FatFs is matched function by function
-from here, with `tools/permute.py` (which compiles `ff.c` with its own `build.ninja` flags).
+build's (`remove_chain` directly follows `store_xdir`). `tools/permute.py` on 18 main-ode
+`ff.c` functions at size-matched addresses (300 iterations x 6 seeds each) made none exact;
+gains were `remove_chain` 36 -> 73 of 353 windows (branch hints and a swapped if/else, i.e. block
+layout), `mount_volume` 187 -> 193, `f_mkfs` 46 -> 48, `f_mount` 6 -> 7, the rest unchanged.
+None was applied: the exact build places only exact functions, and the variants would replace
+public source with mutations.
 
 Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
 config, esp-serial-flasher 3937d49 with MD5 off). esp-serial-flasher's `esp_loader.c` carries the
