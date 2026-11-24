@@ -112,6 +112,10 @@ wsl.exe -d Ubuntu --cd F:\flippydrive-fw -- bash tools/wsl_build.sh . fw
 
 Each step takes the previous one's output; the bootloader includes the disc.
 
+`wsl.exe -d Ubuntu --cd F:lippydrive-fw -- bash tools/check_all.sh` runs all of this plus the
+exact build and the package, checks every image and `update.fpkg` against the original, and
+prints each RP2040 image's bytes by source.
+
 Output in WSL: `~/fd-build/fw/{bootloader,main-ode}/flippydrive-*.bin`,
 `~/fd-build/gc-apploader/apploader.img`, `~/fd-build/gc-payload/payload.dol`,
 `~/fd-build/gc-stub/main.dol` and `~/fd-build/gc-disc/disc.iso`.
