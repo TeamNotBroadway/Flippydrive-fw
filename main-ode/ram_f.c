@@ -40,35 +40,35 @@ static inline void aud_dma_arm(uint ch, uint chain, int buf, uint32_t count)
 void __not_in_flash_func(aud_dma_irq)(uint32_t status)
 {
     uint8_t st = aud_buf_state[aud_next_buf];
-    uint32_t more = aud_loop | aud_next_start;
-    if (st == 2) {
-        if (more == 0)
+    int more = aud_loop | aud_next_start;
+    if (2 == st) {
+        if (likely(0 == more))
             aud_pos = aud_loop_start;
         aud_set_buf_state(aud_next_buf, 0);
         aud_enabled = 0;
         audio_stop();
         return;
     }
-    uint32_t pos = aud_pos + AUD_CHUNK;
+    int pos = AUD_CHUNK + aud_pos;
     aud_pos = pos;
-    if (more == 0 && pos >= aud_end)
+    if (likely(more == 0 && pos >= aud_end))
         aud_pos = aud_loop_start;
     aud_set_buf_state(aud_next_buf, 0);
     aud_next_buf++;
     aud_next_buf = aud_next_buf % AUD_BUFS;
-    int nb = (uint)(aud_next_buf + 1) % AUD_BUFS;
+    int nb = (aud_next_buf + 1) % AUD_BUFS;
     if (aud_buf_state[nb] == 1) {
-        uint x = aud_dma_b, y = aud_dma_a;
+        uint32_t x = aud_dma_b, y = aud_dma_a;
         if (status & (1u << x))
             aud_dma_arm(x, y, nb, AUD_BUF_WORDS);
         if (status & (1u << y))
             aud_dma_arm(y, x, nb, AUD_BUF_WORDS);
     } else if (aud_buf_state[nb] == 2) {
         if (status & (1u << aud_dma_b))
-            aud_dma_arm(aud_dma_b, aud_dma_b, nb, aud_last_len);
+            aud_dma_arm((uint32_t)aud_dma_b, aud_dma_b, nb, aud_last_len);
         if (status & (1u << aud_dma_a))
             aud_dma_arm(aud_dma_a, aud_dma_a, nb, aud_last_len);
-    } else if (aud_playing) {
+    } else if (likely(aud_playing)) {
         (void)aud_enabled;
     }
 }
@@ -89,10 +89,10 @@ int __not_in_flash_func(cmd_audio_stream)(uint32_t a, uint32_t b, uint32_t c)
         di_error(DI_ERR_BAD_HANDLE);
         return 1;
     }
-    uint32_t start = ((b & 0x3fffffff) >> 13) * 0x8000;
-    uint32_t len = (c >> 15) * 0x8000;
+    int32_t start = ((0x3fffffff & b) >> 13) * 0x8000;
+    uint len = (c >> 15) * 0x8000;
     mutex_enter_blocking(&aud_mutex);
-    if (op == 1) {
+    if (1 == op) {
         aud_playing = 0;
         aud_enabled = 0;
         aud_loop = 0;
@@ -101,7 +101,12 @@ int __not_in_flash_func(cmd_audio_stream)(uint32_t a, uint32_t b, uint32_t c)
     } else if (len == 0) {
         aud_loop = 0;
         LOG("DI", "AUDIO_SRC_CONFIG disable loop\n");
-    } else if (aud_playing == 0) {
+    } else if (!(0 == aud_playing)) {
+        aud_next_start = start;
+        aud_next_len = len;
+        aud_loop = 0;
+        LOG("DI", "AUDIO_SRC_CONFIG set next track\n");
+    } else {
         if (aud_enabled != 0 && aud_loop == 0) {
             mutex_exit(&aud_mutex);
             di_error(0x52401);
@@ -111,15 +116,15 @@ int __not_in_flash_func(cmd_audio_stream)(uint32_t a, uint32_t b, uint32_t c)
         aud_cur_start = start;
         aud_pos = start;
         aud_cur_len = len;
-        aud_end = start + len;
+        aud_end = len + start;
         aud_loop = 1;
         aud_playing = 1;
         adpcm_reset();
         LOG("DI", "AUDIO_SRC_CONFIG enable\n");
         audio_stop();
-        if (aud_playing)
+        if (likely(aud_playing))
             audio_fill();
-        uint sm = ai_sm;
+        unsigned sm = ai_sm;
         uint offset = ai_offset;
         pio_sm_config cfg = ai_program_get_default_config(offset);
         sm_config_set_out_pins(&cfg, 29, 1);
@@ -132,11 +137,6 @@ int __not_in_flash_func(cmd_audio_stream)(uint32_t a, uint32_t b, uint32_t c)
         pio_sm_set_enabled(pio1, sm, true);
         audio_dma_start(0);
         aud_enabled = 1;
-    } else {
-        aud_next_start = start;
-        aud_next_len = len;
-        aud_loop = 0;
-        LOG("DI", "AUDIO_SRC_CONFIG set next track\n");
     }
     mutex_exit(&aud_mutex);
     pio_sm_put_blocking(pio0, di_sm, 0);

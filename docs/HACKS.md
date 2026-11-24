@@ -25,11 +25,11 @@ Placeholders and guesses that a byte-identical build currently depends on.
   original may inline it or implement it differently.
 - `bootloader/app_c.c` holds `di_program` as raw words from the image (0x20018eb8).
 - Near matches written by the batch pass: `ext.c` `req_submit` (7/30), `ram_a.c`
-  `di_worker` (148/179, two spill slots swapped) and `di_stream_file` (85/118), `ram_b.c`
-  `flush_task` (16/24, `ram_g.c`), `qspi_send` (39/213);
-  `ram_d.c` `cmd_read` (146/230, block layout);
+  `di_worker` (148/179, two spill slots swapped) and `di_stream_file` (89/118), `ram_b.c`
+  `flush_task` (16/24, `ram_g.c`), `qspi_send` (47/204);
+  `ram_d.c` `cmd_read` (171/230);
   `ram_e.c` `cmd_ipc` (1294/2483, case-body order differs); `ram_f.c` `cmd_audio_config`
-  (287/379), `aud_dma_irq` (82/192), `id_bitmap_test` (8/19),
+  (287/379), `aud_dma_irq` (164/190), `cmd_audio_stream` (372/375), `id_bitmap_test` (8/19),
   `id_bitmap_set` (1/13).
   Global names in `ram_a.c`/`ram_b.c` that the worker guessed by role (QSPI SM/offset
   assignment, `esp_dma_ch`, `esp_remaining`) are unchecked.

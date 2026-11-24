@@ -56,26 +56,26 @@ void __not_in_flash_func(flush_task)(void)
 
 int __not_in_flash_func(di_stream_net)(uint32_t addr, uint32_t len, uint sm, uint32_t fd)
 {
-    uint32_t mult;
-    uint32_t done;
     struct net_req r;
-    int ch;
     dma_channel_config c;
+    uint32_t ch;
+    int mult;
+    uint32_t done;
 
     if (mount_h1 != fd || root_dir_res != 0 || aud_playing != 0 || aud_enabled != 0 ||
         net_imm_max() < len)
         goto direct;
 
-    if (addr == net_last_addr + net_last_len) {
+    if ((unlikely(!(addr == net_last_addr + net_last_len)))) {
+        mult = 2;
+    } else {
         uint32_t cur = net_readahead;
-        uint32_t fit = 0x8000 / len;
         mult = cur + 2;
+        int fit = 0x8000 / len;
         if (fit < mult)
             mult = fit;
         if (mult < 2)
             mult = 2;
-    } else {
-        mult = 2;
     }
     net_readahead = mult;
 
@@ -84,8 +84,8 @@ int __not_in_flash_func(di_stream_net)(uint32_t addr, uint32_t len, uint sm, uin
     channel_config_set_dreq(&c, pio_get_dreq(pio0, sm, true));
     dma_channel_configure(ch, &c, &pio0->txf[sm], NULL, 0, false);
     mutex_enter_blocking(&link_mutex);
-    if (aud_playing != 0 || aud_enabled != 0) {
-        if (esp_rx.split == 0) {
+    if (likely(aud_playing != 0 || aud_enabled != 0)) {
+        if (unlikely(!esp_rx.split)) {
             LOG("FILE", "Splitting cache area\n");
             esp_rx.split = 1;
             goto refill;
@@ -96,19 +96,19 @@ int __not_in_flash_func(di_stream_net)(uint32_t addr, uint32_t len, uint sm, uin
         esp_rx.split = 0;
         goto refill;
     }
-    if (!(esp_rx.active && esp_rx.base <= addr && addr <= esp_rx.wr - 3)) {
+    if (likely(!(esp_rx.active && esp_rx.base <= addr && addr <= esp_rx.wr - 3))) {
 refill:
         mutex_enter_blocking(&flash_mutex);
         esp_drain();
-        uint32_t total = len * mult;
         uint32_t whole = esp_rx.split == 0;
-        uint32_t max = whole * 0x8000 + 0x25000;
+        int32_t max = whole * 0x8000 + 0x25000;
+        uint32_t total = mult * len;
         if (total > max)
             total = max;
-        if (total < 0x400)
+        if (unlikely(total < 0x400))
             total = 0x400;
         esp_rx.base = addr;
-        esp_rx.wr = addr + total;
+        esp_rx.wr = total + addr;
         esp_rx.rd = addr;
         esp_rx.active = 1;
         memset((uint8_t *)&r + 6, 0, 26);
@@ -116,21 +116,21 @@ refill:
         qspi_send(&r, 32, total);
         mutex_exit(&flash_mutex);
     }
-    mutex_exit(&link_mutex);
+    uint32_t left = len;
 
     uint32_t pos = addr;
-    uint32_t left = len;
-    while (left != 0) {
+    mutex_exit(&link_mutex);
+    while (left) {
         uint32_t off;
         for (;;) {
             mutex_enter_blocking(&link_mutex);
             off = pos - esp_rx.base;
-            if (off < esp_rx.rd - esp_rx.base)
+            if (likely(off < esp_rx.rd - esp_rx.base))
                 break;
             mutex_enter_blocking(&flash_mutex);
-            if (esp_rx.active) {
+            if (unlikely(esp_rx.active)) {
                 uint32_t rd = esp_rx.rd;
-                if (esp_rx.wr != rd) {
+                if (unlikely(rd != esp_rx.wr)) {
                     done = 0;
                     esp_dma_read(esp_rx.data + (rd - esp_rx.base), esp_rx.wr - rd, &done, 0);
                     esp_rx.rd += done;
@@ -143,17 +143,17 @@ refill:
         if (left < span)
             span = left;
         mutex_exit(&link_mutex);
-        while (span != 0) {
-            uint32_t n;
+        while (span) {
+            unsigned n;
             do {
                 for (;;) {
                     mutex_enter_blocking(&link_mutex);
                     if (pos < esp_rx.rd)
                         break;
                     mutex_enter_blocking(&flash_mutex);
-                    if (esp_rx.active) {
+                    if (likely(esp_rx.active != 0)) {
                         uint32_t rd = esp_rx.rd;
-                        if (esp_rx.wr != rd) {
+                        if (unlikely(rd != esp_rx.wr)) {
                             done = 0;
                             esp_dma_read(esp_rx.data + (rd - esp_rx.base), esp_rx.wr - rd, &done, 0);
                             esp_rx.rd += done;
@@ -166,23 +166,23 @@ refill:
                 if (left < n)
                     n = left;
                 mutex_exit(&link_mutex);
-            } while (n == 0);
+            } while (!n);
             dma_channel_wait_for_finish_blocking(ch);
             dma_channel_set_read_addr(ch, esp_rx.data + off, false);
-            dma_channel_set_trans_count(ch, n >> 2, true);
             span -= n;
-            left -= n;
+            dma_channel_set_trans_count(ch, n >> 2, true);
             off += n;
+            left -= n;
             pos += n;
         }
         dma_channel_wait_for_finish_blocking(ch);
-        if (left == 0)
+        if (0 == left)
             break;
         mutex_enter_blocking(&link_mutex);
         mutex_enter_blocking(&flash_mutex);
         esp_drain();
-        uint32_t total = left * mult;
-        uint32_t whole = esp_rx.split == 0;
+        uint32_t whole = 0 == esp_rx.split;
+        unsigned total = mult * left;
         uint32_t max = whole * 0x8000 + 0x25000;
         if (total > max)
             total = max;
@@ -213,7 +213,7 @@ direct:;
     r.magic = REQ_MAGIC; r.cmd = IPC_READ; r.arg = fd; r.addr = addr; r.len = len;
     mutex_enter_blocking(&link_mutex);
     mutex_enter_blocking(&flash_mutex);
-    if (esp_rx.wr != esp_rx.rd) {
+    if (esp_rx.rd != esp_rx.wr) {
         esp_rx.wr = esp_rx.rd;
         esp_drain();
     }
@@ -221,19 +221,19 @@ direct:;
     mutex_exit(&link_mutex);
     qspi_send(&r, 32, len);
     LOG("FILE", "Imm request data\n");
-    uint32_t buf = 0;
     esp_dma_read(net_buf, len, &done, 1);
+    int buf = 0;
     if (len != 0) {
         do {
             esp_dma_wait();
             dma_channel_set_read_addr(ch, net_buf + buf * 0x4000, false);
             buf ^= 1;
-            dma_channel_set_trans_count(ch, done >> 2, true);
             len -= done;
-            if (len != 0)
+            dma_channel_set_trans_count(ch, done >> 2, true);
+            if (0 != len)
                 esp_dma_read(net_buf + buf * 0x4000, len, &done, 1);
-            dma_channel_wait_for_finish_blocking(ch);
-        } while (len != 0);
+            dma_channel_wait_for_finish_blocking((int)ch);
+        } while (len);
     }
     mutex_exit(&flash_mutex);
     dma_channel_cleanup(ch);

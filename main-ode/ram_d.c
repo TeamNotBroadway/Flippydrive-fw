@@ -42,11 +42,11 @@ int __not_in_flash_func(cmd_seek)(uint32_t a, uint32_t offset)
 
 int __not_in_flash_func(cmd_read)(uint32_t a, uint32_t offset, uint32_t len)
 {
-    len &= ~0x1fu;
     uint32_t addr = offset << 2;
     uint32_t fd = (a >> 16) & 0xff;
+    len &= ~0x1fu;
     LOG("DI", "READ 0x%08X len 0x%X fd %u\n", addr, len, fd);
-    if (len != 0) {
+    if (0 != len) {
         if (di_state == 4) {
             di_error(DI_ERR_MOTOR_STOPPED);
             return 1;
@@ -60,7 +60,14 @@ int __not_in_flash_func(cmd_read)(uint32_t a, uint32_t offset, uint32_t len)
         }
         if (id_bitmap_test(fd))
             sleep_us(300);
-        if (!disc_is_file(fd)) {
+        if (!(!disc_is_file(fd))) {
+            net_stream_active = 1;
+            if (unlikely(di_stream_net(addr, len, di_sm, fd))) {
+                LOG("DI", "READ ERROR\n");
+                di_error(DI_ERR_READ);
+                return 1;
+            }
+        } else {
             net_stream_active = 0;
             root_dir_res = f_lseek(&di_file, addr);
             if (root_dir_res) {
@@ -69,13 +76,6 @@ int __not_in_flash_func(cmd_read)(uint32_t a, uint32_t offset, uint32_t len)
                 return 1;
             }
             di_stream_file(len);
-        } else {
-            net_stream_active = 1;
-            if (di_stream_net(addr, len, di_sm, fd)) {
-                LOG("DI", "READ ERROR\n");
-                di_error(DI_ERR_READ);
-                return 1;
-            }
         }
         if ((a & 0xc0) == 0x40)
             di_state = 0;

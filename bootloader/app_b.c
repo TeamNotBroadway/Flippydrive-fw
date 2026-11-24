@@ -179,7 +179,7 @@ struct open_rep {
 // 0: new update.fpkg stored; 1: not on the SD card; 2: empty; negative: link or write error.
 int fetch_update(void)
 {
-    unsigned ret;
+    uint ret;
 
     puts("Opening SD card /update.fpkg");
     uint8_t buf[0x1000];
@@ -192,7 +192,7 @@ int fetch_update(void)
         q.path[0xff] = 0;
         q.mode = 4;
         ret = qspi_send(&q, 0x140, 0);
-        if (ret) {
+        if (0 != ret) {
             ret = 1;
             puts("Unable to send open command");
             return -ret;
@@ -213,12 +213,12 @@ int fetch_update(void)
         }
     }
 
-    uint remaining = rep.size_lo;
+    uint32_t remaining = rep.size_lo;
     uint8_t fd = rep.fd;
     printf("Update size: %d\n", (unsigned)remaining);
     fd_status.show_video = 1;
     fd_status.show_progress_bar = 1;
-    if (remaining == 0)
+    if (!remaining)
         return 2;
 
     bool opened = false;
@@ -229,20 +229,20 @@ int fetch_update(void)
         r.magic = REQ_MAGIC;
         r.cmd = IPC_READ;
         r.arg = fd;
-        unsigned chunk = remaining > 0x1000 ? 0x1000 : remaining;
         r.off = rep.size_lo - remaining;
+        unsigned chunk = remaining > 0x1000 ? 0x1000 : remaining;
         r.len = chunk;
-        if (likely(qspi_send(&r, 0x20, chunk) == 0)) {
+        if (likely(likely(qspi_send(&r, 0x20, chunk) == 0))) {
             int32_t got = 0;
             do {
                 int32_t n = 0;
-                esp_dma_read(buf + got, chunk - got, &n, 0);
+                esp_dma_read(got + buf, chunk - got, &n, 0);
                 got += n;
             } while (got < chunk);
         }
         uint64_t size = ((uint64_t)rep.size_hi << 32) | rep.size_lo;
         fd_status.progress = __builtin_bswap16((uint16_t)((uint64_t)(1000 * r.off) / size));
-        if (likely(opened == 0)) {
+        if (likely(0 == opened)) {
             puts("Opening local FAT " UPDATE_PATH);
             if (f_open(&fil, UPDATE_PATH, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
                 ret = 2;
@@ -250,16 +250,16 @@ int fetch_update(void)
                 return -ret;
             }
         }
-        if (f_write(&fil, buf, r.len, &bw) != FR_OK || r.len > bw) {
+        if (unlikely(f_write(&fil, buf, r.len, &bw) != FR_OK || r.len > bw)) {
             puts("Unable to write " UPDATE_PATH);
             ret = 3;
             ret = -ret;
             f_close(&fil);
             return ret;
         }
-        opened = true;
         remaining -= chunk;
-    } while ((int)remaining);
+        opened = true;
+    } while (remaining);
     f_close(&fil);
     {
         struct net_req r;

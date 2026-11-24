@@ -158,7 +158,7 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
     gpio_put(20, 1);
     uint64_t t0 = time_us_64();
     while (pio_sm_is_rx_fifo_empty(pio1, qspi_out_status_sm)) {
-        if (time_us_64() - t0 > 0x3d0ce7) {
+        if (likely(time_us_64() - t0 > 0x3d0ce7)) {
             puts("QSPI timeout!");
             dma_channel_cleanup(ch);
             dma_channel_unclaim(ch);
@@ -170,7 +170,7 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
     dma_channel_cleanup(ch);
     dma_channel_unclaim(ch);
     esp_remaining = cont;
-    if (cont == 0) {
+    if ((cont == 0)) {
         qspi_reset_sms();
     } else {
         pio_sm_set_enabled(pio1, qspi_out_status_sm, false);
