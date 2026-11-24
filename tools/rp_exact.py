@@ -630,12 +630,21 @@ def main():
                 f.write(f"{'' if a is None else f'0x{a:08x}'}\t{o.secs[idx]['size']}\t{o.label}\t"
                         f"{o.secs[idx]['name']}\t{why}\n")
     own = owners(name, pl)
+    # Fallback owner: Ghidra's function list (tools/ghidra_import.sh; not in the repository).
+    ghidra = []
+    gf = ROOT / "decomp" / name / "functions.tsv"
+    for line in gf.read_text().splitlines() if gf.exists() else []:
+        f = line.split("\t")
+        a = int(f[0], 16)
+        ghidra.append((a, a + int(f[1]), f[2]))
+    ghidra.sort()
     totals = {}
     with open(out / "gaps.tsv", "w") as f:
         for a, n, kind in sorted(report):
             totals[kind] = totals.get(kind, 0) + n
             if kind == "orig":
-                who = next((w for s, e, w in reversed(own) if s <= a < e), "")
+                who = next((w for s, e, w in reversed(own) if s <= a < e), "") or \
+                    next((f"{w} (ghidra)" for s, e, w in reversed(ghidra) if s <= a < e), "")
                 f.write(f"0x{a:08x}\t{n}\t{who}\n")
     placed_src = sum(1 for _, _, p, i in cands if (p, i) in pl.placed)
     print(f"{name}: {placed_src} of {len(cands)} src.tsv functions from C; {len(pl.placed)} sections placed")

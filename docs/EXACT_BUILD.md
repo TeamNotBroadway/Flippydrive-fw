@@ -28,7 +28,8 @@ The run prints the image's bytes by source: `C` (placed sections), zero bytes, s
 our objects' merged string sections, long-branch veneers to known functions, and `original`.
 Only `original` is `.incbin`'d. `gaps.tsv` owners come from `syms/<image>.lib.tsv`, from
 unplaced sections whose address a placed one implies (with our size), and from `src.tsv`
-functions up to the next known start, so an owner's byte count is approximate.
+functions up to the next known start, then from Ghidra's function list
+(`decomp/<image>/functions.tsv`, marked `(ghidra)`), so an owner's byte count is approximate.
 
 In `status.tsv`, a reason of `differs at +N` or `no BL at +N` is a code mismatch.
 `X would be at A, not B (from F)` means this function and F disagree on where X is: one of them
