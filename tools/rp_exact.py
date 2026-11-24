@@ -22,6 +22,9 @@ ENV = dict(os.environ, LD_LIBRARY_PATH=f"{TC}/hostlib")
 BASE = {"bootloader": 0x10000000, "main-ode": 0x10080000}
 
 R_ARM_ABS32, R_ARM_REL32, R_ARM_THM_CALL, R_ARM_THM_JUMP24, R_ARM_TARGET1 = 2, 3, 10, 30, 38
+R_ARM_THM_JUMP11, R_ARM_THM_JUMP8 = 102, 103
+# Short Thumb branches: (opcode mask, immediate bits)
+SHORT_BRANCH = {R_ARM_THM_JUMP11: (0xf800, 11), R_ARM_THM_JUMP8: (0xff00, 8)}
 ABS_TYPES = (R_ARM_ABS32, R_ARM_TARGET1)
 # ld's Thumb-only long-branch stub: push {r0}; ldr r0, [pc, #8]; mov ip, r0; pop {r0}; bx ip; nop
 VENEER = bytes.fromhex("01b4024884460 1bc60470 0bf".replace(" ", ""))
@@ -77,7 +80,8 @@ class Obj:
     def mask(self, idx):
         m = bytearray(self.secs[idx]["size"])
         for off, typ, si, ent in self.rels.get(idx, []):
-            m[off:off + 4] = b"\1\1\1\1"
+            n = 2 if typ in SHORT_BRANCH else 4
+            m[off:off + n] = b"\1" * n
         return m
 
     def func_name(self, idx):
@@ -215,6 +219,15 @@ def constraints(img, addr, o, idx):
             a, = struct.unpack_from("<I", code, off)
             w, = struct.unpack_from("<I", orig, off)
             val = (w - a + (addr + off if typ == R_ARM_REL32 else 0)) & 0xffffffff
+        elif typ in SHORT_BRANCH:
+            opm, bits = SHORT_BRANCH[typ]
+            h, = struct.unpack_from("<H", orig, off)
+            c, = struct.unpack_from("<H", code, off)
+            if h & opm != c & opm:
+                return None, f"differs at +0x{off:x}"
+            imm = lambda x: ((x & ((1 << bits) - 1)) ^ (1 << (bits - 1))) - (1 << (bits - 1))
+            a = imm(c) * 2   # the REL addend, normally -4
+            val, call = addr + off + 4 + imm(h) * 2 - 4 - a, True
         elif typ in (R_ARM_THM_CALL, R_ARM_THM_JUMP24):
             h1, h2 = struct.unpack_from("<HH", orig, off)
             if h1 & 0xf800 != 0xf000:
@@ -590,6 +603,15 @@ def main():
             o = pl.by_path[path]
             f.write(f"0x{a:08x}\t{o.secs[idx]['size']}\t{o.label}\t{o.secs[idx]['name']}\t"
                     f"{pl.setby.get(('sec', path, idx), '')}\n")
+    with open(out / "unplaced.tsv", "w") as f:
+        for o in objs:
+            for idx in range(len(o.secs)):
+                if not placeable(o, idx) or (o.path, idx) in pl.placed:
+                    continue
+                a = pl.known.get(("sec", o.path, idx))
+                why = pl.tried.get((o.path, idx)) or ("not tried" if a is not None else "no address")
+                f.write(f"{'' if a is None else f'0x{a:08x}'}\t{o.secs[idx]['size']}\t{o.label}\t"
+                        f"{o.secs[idx]['name']}\t{why}\n")
     own = owners(name, pl)
     totals = {}
     with open(out / "gaps.tsv", "w") as f:

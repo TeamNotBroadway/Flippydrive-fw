@@ -20,6 +20,7 @@ Output in `~/fd-build/exact-<image>/`:
 | `flippydrive-<image>.bin` | the image; the run ends `IDENTICAL` or exits non-zero with the first differing offset |
 | `status.tsv` | each `syms/<image>.src.tsv` function: `C` and its object, or `original` and why |
 | `sections.tsv` | every placed section: address, size, object, section, what fixed its address |
+| `unplaced.tsv` | every other section with contents: address if known, size, object, section, why not placed |
 | `gaps.tsv` | every range still taken from the original: address, length, owner where known |
 | `exact.ld`, `gaps.s`, `syms.s`, `exact.map` | generated linker script, gap contents, absolute symbols, map |
 
