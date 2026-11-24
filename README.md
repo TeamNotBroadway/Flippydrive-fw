@@ -34,8 +34,8 @@ Known broken or unverified (details in `docs/HACKS.md`):
 
 | Image | Load | Size | SHA-256 | Status |
 |---|---|---|---|---|
-| `flippydrive-bootloader.bin` | 0x10000000 | 0x40600 | fe5e5047…a0c64bf7e | exact build identical (50 of 58 functions from C); C build links, 51 of 68 scored functions exact |
-| `flippydrive-main-ode.bin` | 0x10080000 | 0x1b800 | cadba959…ec7be7f34 | exact build identical (35 of 43 functions from C); C build links, 65 of 95 scored functions exact |
+| `flippydrive-bootloader.bin` | 0x10000000 | 0x40600 | fe5e5047…a0c64bf7e | exact build identical (59 of 67 `src.tsv` functions from C); C build links, 51 of 68 scored functions exact |
+| `flippydrive-main-ode.bin` | 0x10080000 | 0x1b800 | cadba959…ec7be7f34 | exact build identical (45 of 55 `src.tsv` functions from C); C build links, 65 of 95 scored functions exact |
 | GameCube disc image (bootloader 0x100002d0) | — | 0x258f4 | 1996f511…7e92af267 | identical (gc-boot-tools `create_iso_header`) |
 | GameCube `main.dol` (in the bootloader's disc image) | 0x81100000 | 0x1d8f4 | 1b787f13…b08dc4c49 | identical |
 | GameCube `apploader.img` (disc 0x2440) | 0x81200000 | 0x2394 | f9c16679…bad319f6b | identical (gc-boot-tools) |

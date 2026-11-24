@@ -10,6 +10,13 @@
 0x10080ae8	config_ini_handler
 0x10080cac	di_setup
 0x10081110	di_init_handlers
+0x10081120	register_cmd_motor_stop
+0x10081130	register_cmd_inquire
+0x10081140	register_cmd_seek
+0x10081150	register_cmd_read
+0x10081160	register_cmd_wkf
+0x10081170	register_bypass_enter
+0x10081180	register_cmd_ipc
 0x10081190	log_init
 0x100811a0	log_alloc
 0x1008126c	log_free
@@ -18,6 +25,9 @@
 0x10081c90	audio_reset
 0x10081cb4	audio_dma_start
 0x10081e04	audio_poll
+0x10081e1c	register_cmd_audio_stream
+0x10081e2c	register_cmd_audio_status
+0x10081e3c	register_cmd_audio_config
 0x10081e4c	audio_dma_init
 0x10081f08	audio_dma_deinit
 0x10081f30	adpcm_reset
@@ -27,6 +37,7 @@
 0x10082430	disc_is_file
 0x100829e0	ini_parse_string
 0x200000c0	disk_write
+0x20000464	di_stream_file
 0x200005e4	di_gpio_irq
 0x20000c78	bypass_enter
 0x2000125c	cmd_seek
@@ -35,6 +46,7 @@
 0x2000178c	cmd_ipc
 0x200036f0	esp_drain
 0x20003938	esp_dma_read
+0x20003a04	qspi_send
 0x20003c8c	cmd_audio_config
 0x20003d58	cmd_audio_status
 0x20004038	aud_dma_irq

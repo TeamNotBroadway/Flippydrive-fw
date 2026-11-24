@@ -21,6 +21,8 @@ Placeholders and guesses that a byte-identical build currently depends on.
 - `bootloader/esp_port.c` declares `expander_set(uint8_t, bool)`; `app_a.c` defines it with
   `uint pin`. The calls match only with the narrow prototype. `esp_flash_finish` sends SYNC,
   not FLASH_END, as the original does. The bootloader built from this tree is not tested.
+  `loader_port_change_baudrate` is not located in the image (0 of 5 windows anywhere); the
+  original may inline it or implement it differently.
 - `bootloader/app_c.c` holds `di_program` as raw words from the image (0x20018eb8).
 - Near matches written by the batch pass: `ext.c` `req_submit` (7/30), `ram_a.c`
   `di_worker` (148/179, two spill slots swapped) and `di_stream_file` (85/118), `ram_b.c`
