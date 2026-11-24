@@ -111,4 +111,42 @@ already be in download mode: either direct wiring, or the clean-bridge command a
 drive the lines) on an `-DFD_ESP_EXTRACT` build. Its header documents both. Untested — no board
 was available when it was written.
 
+## Writing to an encryption-enabled ESP32, and the reflash budget
+
+This is the inverse of reading, and it constrains step 1 above: flashing the
+`-DFD_ESP_EXTRACT` bootloader onto a device that already has flash encryption enabled is **not**
+a plain write.
+
+- **A plaintext write does not boot.** The flash controller decrypts every fetch transparently
+  from the eFuse key, so plaintext bytes written to an encrypted partition are "decrypted" into
+  garbage on read. The image has to land in flash as ciphertext under *this device's* key — the
+  key we do not have offline. So the stock `flash_esp32` path (which writes the fpkg bytes
+  unchanged) only produces a bootable result for images that were already encrypted by
+  OffBroadway's pipeline.
+- **Development mode** is the only UART route for a self-built image. `esptool.py write_flash
+  --encrypt` has the ROM encrypt each block device-side during download, reusing the eFuse key,
+  so plaintext you supply lands as valid ciphertext. This is how a modified bootloader could be
+  flashed without the pipeline key — but only on a dev-mode device.
+- **Release mode** (`DISABLE_DL_DECRYPT` set) blocks this too: encrypted-download is disabled, so
+  there is no UART path to write a working image at all. A modified bootloader would then have to
+  go through the firmware's own update path, not esptool.
+
+**The reflash budget.** `FLASH_CRYPT_CNT` is a 7-bit eFuse on the original ESP32 (newer variants
+use a 3-bit `SPI_BOOT_CRYPT_CNT`). Encryption is enabled when an odd number of its bits are set;
+each re-encryption toggles parity by burning one more bit. Bits only go 0->1, so the number of
+re-encryption cycles is small and finite — a handful (on the order of 3) on the original ESP32
+before the counter is spent and the partition is locked as-is. Treat the exact remaining count as
+something to read from the board, not to assume.
+
+**What spends a cycle.** Not the UART transfer — that is only transport, and reflashing identical
+ciphertext never moves the counter. A bit is burned by the *encryption operation*: the bootloader
+taking plaintext in flash and encrypting it in place with the saved key, then advancing
+`FLASH_CRYPT_CNT` to record it. So a plaintext reflash (write plaintext -> reboot -> bootloader
+re-encrypts -> burn) costs a cycle, whereas an already-encrypted `--encrypt` download generally
+does not. The key in eFuse block 1 is burned once and is separate from the counter; it is reused
+every cycle, never re-burned. Confirm empirically with `espefuse.py summary` before and after a
+write: if the set-bit count of `FLASH_CRYPT_CNT` rose, that operation cost a cycle. This matters
+for extraction because the budget is shared and irreversible — spending it on bootloader-swap
+experiments is a one-way door.
+
 Until then the three ESP32 images stay opaque and are passed through unchanged.
