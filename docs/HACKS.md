@@ -47,14 +47,14 @@ Placeholders and guesses that a byte-identical build currently depends on.
     (Ghidra-decompiled from the original, `tools/ghidra/FdDecompAt.java`):
     - `esp_loader_connect` (0x20009990): forces `s_target = ESP32_CHIP` after
       `loader_detect_chip` (dropping the ESP8266 branch) and retries sync every 10 ms, not 100.
-    - `esp_loader_flash_start` (0x20009a04): adds `printf("Detected flash size: %u\n", ...)`
+    - `esp_loader_flash_start` (0x20009a04): adds `printf("flash_size = %08x\n", ...)`
       after `detect_flash_size` succeeds, before the image-size check. The printf's placement in
       `esp_loader_flash_start` (not in `detect_flash_size`) is what keeps `flash_size` live in
       the frame and makes the stack layout match.
     Both are byte-exact (13/13 and 148/148 non-relocated windows). The MD5 code,
     `loader_md5_cmd` and `loader_flash_end_cmd` are absent from the image (`MD5_ENABLED=0`,
-    dead-code-eliminated), not modified. The format strings are not byte-verified (they are
-    masked relocations into `.rodata`; the exact build takes the strings from the original).
+    dead-code-eliminated), not modified. `rp_exact.py` checks the strings both functions point
+    to against the original.
   - FatFs: libmatch finds 1 of 30 verbatim, but that is the section-anchor data addressing
     (noted in `third_party/fatfs/CMakeLists.txt`), not a modification; FatFs is effectively
     unmodified.

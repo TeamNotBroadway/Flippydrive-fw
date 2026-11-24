@@ -236,7 +236,7 @@ esp_loader_error_t esp_loader_flash_start(uint32_t offset, uint32_t image_size, 
     size_t flash_size = 0;
     if (detect_flash_size(&flash_size) == ESP_LOADER_SUCCESS) {
         /* FlippyDrive fork: report the detected flash size. */
-        printf("Detected flash size: %u\n", (unsigned)flash_size);
+        printf("flash_size = %08x\n", (unsigned)flash_size);
         if (image_size > flash_size) {
             return ESP_LOADER_ERROR_IMAGE_SIZE;
         }

@@ -215,6 +215,18 @@ def constraints(img, addr, o, idx):
     for off, typ, si, ent in o.rels.get(idx, []):
         sym = o.syms[si]
         call = False
+        if sym["bind"] == 2 and sym["shndx"] == 0:
+            # Undefined weak: the original linked no definition either if its word is the bare
+            # addend (address 0) or its BL is ld's rewrite for such a call, b.n +4; nop.
+            # Otherwise it is resolved like any other symbol.
+            if typ in ABS_TYPES:
+                none = orig[off:off + 4] == code[off:off + 4]
+            else:
+                none = typ in (R_ARM_THM_CALL, R_ARM_THM_JUMP24) and \
+                    struct.unpack_from("<HH", orig, off) == (0xe000, 0xbf00)
+            if none:
+                out.append((("weak", sym["name"]), 0, False))
+                continue
         if typ in ABS_TYPES or typ == R_ARM_REL32:
             a, = struct.unpack_from("<I", code, off)
             w, = struct.unpack_from("<I", orig, off)
@@ -306,6 +318,11 @@ class Placer:
         trial = {}
         for k, val, call in cons:
             if k[0] == "fix":
+                trial[k] = val
+                continue
+            if k[0] == "weak":
+                if k[1] in self.defs:
+                    return f"{k[1]} is defined here but not in the original"
                 trial[k] = val
                 continue
             if k[0] == "abs" and k[1] in self.defs:  # defined in one of our objects
