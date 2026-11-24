@@ -243,6 +243,12 @@ FatFs's code page is 437 (`ff_uni2oem`/`ff_oem2uni` and ffunicode's `.rodata` pl
 main-ode) raised the window score 2026 -> 2197 with no `ff.c` function exact; its config
 needs `get_fattime` and raised the bootloader's original bytes, so it is not used. No
 `ff.c` section places in either image: the remaining FatFs work is source-level.
+Whole-file checks of `ff.c` (matched windows against main-ode / bootloader, current config at
+-O3: 2026 / 2418 of 14769; three exact functions, all in ffunicode.c): -O2 1081 / 1391, -Os 62 /
+82, -O1 246 / 281; `FF_MAX_SS` 512 1135 / 1418; `FF_FS_LOCK` 0, `FF_FS_EXFAT` 0 and
+`FF_LFN_UNICODE` 0 all lower; `FF_USE_LFN` 2 raises main-ode to 2296 but lowers the bootloader to
+2080, so the two images may use different FatFs configs. No variant makes an `ff.c` function
+exact. elm-chan's R0.15 patches are not tested (not on disk).
 
 Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
 config, esp-serial-flasher 3937d49 with MD5 off) and will be decompiled like application code:
