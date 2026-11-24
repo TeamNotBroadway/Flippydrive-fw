@@ -248,7 +248,10 @@ Whole-file checks of `ff.c` (matched windows against main-ode / bootloader, curr
 82, -O1 246 / 281; `FF_MAX_SS` 512 1135 / 1418; `FF_FS_LOCK` 0, `FF_FS_EXFAT` 0 and
 `FF_LFN_UNICODE` 0 all lower; `FF_USE_LFN` 2 raises main-ode to 2296 but lowers the bootloader to
 2080, so the two images may use different FatFs configs. No variant makes an `ff.c` function
-exact. elm-chan's R0.15 patches are not tested (not on disk).
+exact. elm-chan's R0.15 patches (from the Internet Archive's copy of the patches page; no
+longer hosted): unpatched R0.15 (`#if FS_LOCK` at ff.c:903) scores the same as patch 1;
+patches 2 (`FF_FS_REENTRANT` with several volumes) and 3 (`f_setlabel`) touch no code this
+config builds. FatFs is matched function by function from here.
 
 Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
 config, esp-serial-flasher 3937d49 with MD5 off) and will be decompiled like application code:
