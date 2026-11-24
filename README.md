@@ -27,8 +27,9 @@ Known broken or unverified (details in `docs/HACKS.md`):
   differ from the original.
 - Some main-ode globals are unidentified, and their sizes are guessed.
 - Functions are not at the original addresses.
-- The exact build takes 8 of 58 bootloader and 8 of 43 main-ode candidate functions from
-  the original (`status.tsv` in its output lists them and why).
+- The exact build takes 8 of 67 bootloader and 10 of 55 main-ode `src.tsv` functions from the
+  original, and 29214 and 42013 bytes in all (`status.tsv` and `gaps.tsv` in its output list
+  them; `tools/check_all.sh` prints the totals).
 
 ## Targets
 
