@@ -25,16 +25,21 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import callseq  # noqa: E402  (after OBJDUMP is set: funcdiff reads it on import)
 
 
-def build_flags(img):
+def build_flags(img, srcpath=None):
+    """Compile flags of SRCPATH's object in build.ninja, else of <img>/main.c.o."""
     nin = open(os.path.expanduser("~/fd-build/fw/build.ninja")).read().split("\n")
-    key = f"build {img}/CMakeFiles/flippydrive-{img}.dir/main.c.o"
-    i = next(n for n, l in enumerate(nin) if l.startswith(key))
+    src = " " + os.path.abspath(srcpath) if srcpath else None
+    i = next((n for n, l in enumerate(nin) if src and l.startswith("build ")
+              and l.split(" || ")[0].endswith(src)), None)
+    if i is None:
+        key = f"build {img}/CMakeFiles/flippydrive-{img}.dir/main.c.o"
+        i = next(n for n, l in enumerate(nin) if l.startswith(key))
     out = {}
     for l in nin[i + 1:i + 8]:
         m = re.match(r"\s+(DEFINES|INCLUDES|FLAGS) = (.*)", l)
         if m:
             out[m.group(1)] = m.group(2)
-    flags = f"{out['DEFINES']} {out['INCLUDES']} {out['FLAGS']}"
+    flags = " ".join(out.get(k, "") for k in ("DEFINES", "INCLUDES", "FLAGS"))
     return flags.replace("/mnt/c/Tools", FAST) if os.path.isdir(FAST) else flags
 
 
@@ -299,7 +304,7 @@ MUTATORS = [m_swap_adjacent, m_swap_adjacent, m_move_stmt, m_move_stmt, m_commut
 def worker(args):
     img, srcpath, func, addr, iters, seed = args
     rnd = random.Random(seed)
-    flags = build_flags(img)
+    flags = build_flags(img, srcpath)
     src = open(srcpath).read()
     srcdir = os.path.dirname(os.path.abspath(srcpath))
     s, e = find_body(src, func)
