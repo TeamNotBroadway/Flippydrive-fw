@@ -8,9 +8,9 @@ Two builds of each RP2040 image come from the same objects:
   address; the rest is taken from the original image.
 
 ```
-wsl.exe -d Ubuntu --cd F:lippydrive-fw -- bash tools/wsl_build.sh . fw
-wsl.exe -d Ubuntu --cd F:lippydrive-fw -- python3 tools/rp_exact.py bootloader
-wsl.exe -d Ubuntu --cd F:lippydrive-fw -- python3 tools/rp_exact.py main-ode
+wsl.exe -d Ubuntu --cd F:\flippydrive-fw -- bash tools/wsl_build.sh . fw
+wsl.exe -d Ubuntu --cd F:\flippydrive-fw -- python3 tools/rp_exact.py bootloader
+wsl.exe -d Ubuntu --cd F:\flippydrive-fw -- python3 tools/rp_exact.py main-ode
 ```
 
 Output in `~/fd-build/exact-<image>/`:

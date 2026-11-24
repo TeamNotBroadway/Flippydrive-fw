@@ -20,11 +20,11 @@ Known broken or unverified (details in `docs/HACKS.md`):
   (`bootloader/esp_port.c`), and esp-serial-flasher's two fork-modified functions
   (`esp_loader_connect`, `esp_loader_flash_start`) are now matched in the vendored source
   (`docs/HACKS.md`). Untested on hardware; a bad bootloader may not be recoverable.
-- esp-serial-flasher and FatFs match the original (FatFs is effectively unmodified). Both are
-  vendored, with the fork's `esp_loader.c` edits reproduced (`docs/HACKS.md`).
-- Functions that are not exact matches (bootloader 19 of 68, main-ode 30 of 95 scored
-  functions) are checked for call order only. Conditions, constants and stores can still
-  differ from the original.
+- FatFs (vendored R0.15) does not match: no `ff.c` function is exact in either image
+  (`docs/PLAN.md`, Analysis status). The exact build takes its bytes from the original.
+- Functions that are not exact matches (bootloader 9 of 69, main-ode 13 of 95, scored by
+  `tools/funcdiff.py` at their `src.tsv` addresses) are checked for call order only.
+  Conditions, constants and stores can still differ from the original.
 - Some main-ode globals are unidentified, and their sizes are guessed.
 - Functions are not at the original addresses.
 - The exact build takes 8 of 67 bootloader and 10 of 55 main-ode `src.tsv` functions from the
@@ -35,8 +35,8 @@ Known broken or unverified (details in `docs/HACKS.md`):
 
 | Image | Load | Size | SHA-256 | Status |
 |---|---|---|---|---|
-| `flippydrive-bootloader.bin` | 0x10000000 | 0x40600 | fe5e5047…a0c64bf7e | exact build identical (59 of 67 `src.tsv` functions from C); C build links, 51 of 68 scored functions exact |
-| `flippydrive-main-ode.bin` | 0x10080000 | 0x1b800 | cadba959…ec7be7f34 | exact build identical (45 of 55 `src.tsv` functions from C); C build links, 65 of 95 scored functions exact |
+| `flippydrive-bootloader.bin` | 0x10000000 | 0x40600 | fe5e5047…a0c64bf7e | exact build identical (59 of 67 `src.tsv` functions from C); C build links, 60 of 69 scored functions exact |
+| `flippydrive-main-ode.bin` | 0x10080000 | 0x1b800 | cadba959…ec7be7f34 | exact build identical (45 of 55 `src.tsv` functions from C); C build links, 82 of 95 scored functions exact |
 | GameCube disc image (bootloader 0x100002d0) | — | 0x258f4 | 1996f511…7e92af267 | identical (gc-boot-tools `create_iso_header`) |
 | GameCube `main.dol` (in the bootloader's disc image) | 0x81100000 | 0x1d8f4 | 1b787f13…b08dc4c49 | identical |
 | GameCube `apploader.img` (disc 0x2440) | 0x81200000 | 0x2394 | f9c16679…bad319f6b | identical (gc-boot-tools) |
@@ -113,7 +113,7 @@ wsl.exe -d Ubuntu --cd F:\flippydrive-fw -- bash tools/wsl_build.sh . fw
 
 Each step takes the previous one's output; the bootloader includes the disc.
 
-`wsl.exe -d Ubuntu --cd F:lippydrive-fw -- bash tools/check_all.sh` runs all of this plus the
+`wsl.exe -d Ubuntu --cd F:\flippydrive-fw -- bash tools/check_all.sh` runs all of this plus the
 exact build and the package, checks every image and `update.fpkg` against the original, and
 prints each RP2040 image's bytes by source.
 
@@ -134,7 +134,7 @@ To package the built images, copy them out of WSL and pack them into a copy of t
 (entries are matched by file name; the others are kept):
 
 ```
-wsl.exe -d Ubuntu --cd F:/flippydrive-fw -- sh -c "mkdir -p build && cp ~/fd-build/exact-*/flippydrive-*.bin build/"
+wsl.exe -d Ubuntu --cd F:/flippydrive-fw -- sh -c "mkdir -p build && cp ~/fd-build/exact-bootloader/flippydrive-bootloader.bin ~/fd-build/exact-main-ode/flippydrive-main-ode.bin build/"
 python -I tools/fpkg.py --pack original/update.fpkg build/update.fpkg build/flippydrive-bootloader.bin build/flippydrive-main-ode.bin
 ```
 

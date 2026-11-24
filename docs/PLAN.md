@@ -38,13 +38,7 @@ serves: id `GBLAOB`, name `GAMECUBE COMPAT BOOTLOADER`.
   0x8002a3e0+0x1eea0, bss 0x80049280+0x82e0, entry 0x80003100. The GameCube-side boot menu:
   strings "Boot Onboard DOL", "Update/Reinstall Firmware", "/cubeboot.dol", "/stub.bin",
   network boot; newlib locale strings. Its exception handler strings
-  (`
-
-
-	Exception (%s) occurred!
-`, `
-	Reloading in %d seconds
-`) are libogc2's
+  (`\n\n\tException (%s) occurred!\n`, `\n\tReloading in %d seconds\n`) are libogc2's
   (extremscorner) before commit 8432a8f (2025-08-27), not devkitPro libogc's. libogc2 added
   devkitPPC r47 support at fd5410c (2025-05-25).
 - Payload toolchain: **devkitPPC release 47.1 (GCC 15.1.0)** with **libogc2 4887481-70f80d8**
@@ -190,6 +184,18 @@ Both RP2040 images carry pico-sdk `binary_info`:
   toolchain, into `~/fd-build/NAME`.
 - `tools/gen_wsl_compile.py`: replay a Windows CMake build's compile commands with Arch gcc
   (superseded by `wsl_build.sh`; kept for builds that must configure on Windows).
+- `tools/rp_exact.py IMAGE`: the byte-identical RP2040 build (`docs/EXACT_BUILD.md`).
+- `tools/check_all.sh [--skip-gc]`: rebuild every image and `update.fpkg`, compare each with
+  the original, print bytes by source.
+- `tools/permute.py`, `permute_jobs.py`, `permute_run.sh`, `permute_apply.py`,
+  `permute_clean.py`, `permute_score.py`: source-mutation search for non-matching functions,
+  scored by `funcdiff.py` windows and call order; apply only improvements; strip mutation noise.
+- `tools/callseq.py`, `callseq_all.py`: call-order check; `tools/litcheck.py`,
+  `litcheck_all.py`: literal-pool constants against the original.
+- `tools/ghidra/FdDecompAt.java`: decompile at given addresses, replacing a wrong function
+  boundary.
+- `tools/recovery.py`: verify or regenerate `recovery.uf2`; `tools/esp32_dump.py`: read an
+  ESP32's eFuses and flash from a device (`docs/ESP32.md`).
 
 ## Goal for the code
 
@@ -227,7 +233,9 @@ Neither FatFs nor esp-serial-flasher is byte-identical to any public source:
   `third_party/fatfs/ffconf.h`. Building without `-fdata-sections` is required (section anchors);
   remaining differences are register allocation and scheduling. Fedora's GCC 14.1.0
   gives the same output as Arch 14.2.0, and GCC 15.1.0 matches worse (1273 windows vs
-  2237), so the compiler is not the cause; ff.c is probably modified.
+  2237), so the compiler is not the cause; ff.c is probably modified. Arm GNU 14.2.Rel1
+  (Windows build, same flags, current config) scores 2021 / 2418 windows against Arch's
+  2026 / 2418 (main-ode / bootloader).
 - esp-serial-flasher (bootloader, RAM 0x200099fa-0x2000a8ec). No tag v1.0.0-v1.8.0 matches
   beyond 4-5 small functions. The string `ESP8266 does not support change baudrate
   command.` exists only between commits 5264d5a and adc18ff (first in v1.0.0), in
@@ -236,7 +244,8 @@ Neither FatFs nor esp-serial-flasher is byte-identical to any public source:
   to 3937d49 (before ESP32-C2 support), 21 functions exact; `serial_comm.c` matches better
   after 99fd1eb (RAM loading), while `esp_loader.c` matches poorly everywhere (52 windows).
   So the original is a locally modified fork; the firmware also has strings in neither
-  (`current_baud = %d`, `Invalid flash image segment!`).
+  (`current_baud = %d`, `Invalid flash image segment!`). The fork's two modified functions in
+  `esp_loader.c` are now reproduced byte-exact (`docs/HACKS.md`).
 
 FatFs's code page is 437 (`ff_uni2oem`/`ff_oem2uni` and ffunicode's `.rodata` place exactly;
 932 had been chosen before). A fuzzy re-sweep with 437 fixed (`tools/sweep/fatfs.json`,
@@ -251,12 +260,14 @@ Whole-file checks of `ff.c` (matched windows against main-ode / bootloader, curr
 exact. elm-chan's R0.15 patches (from the Internet Archive's copy of the patches page; no
 longer hosted): unpatched R0.15 (`#if FS_LOCK` at ff.c:903) scores the same as patch 1;
 patches 2 (`FF_FS_REENTRANT` with several volumes) and 3 (`f_setlabel`) touch no code this
-config builds. FatFs is matched function by function from here.
+config builds. Per function: `move_window` (main-ode 0x1008aa40) differs only in scheduling
+(the original loads before the `push`), and the original's function order differs from our
+build's (`remove_chain` directly follows `store_xdir`). FatFs is matched function by function
+from here, with `tools/permute.py` (which compiles `ff.c` with its own `build.ninja` flags).
 
 Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
-config, esp-serial-flasher 3937d49 with MD5 off) and will be decompiled like application code:
-each function edited until it compiles to the original's bytes, starting from the near-match
-locations in `syms/*.lib.tsv`. Until then they are unmodified (`docs/HACKS.md`).
+config, esp-serial-flasher 3937d49 with MD5 off). esp-serial-flasher's `esp_loader.c` carries the
+fork's edits; FatFs is unmodified (`docs/HACKS.md`).
 
 ## Approach
 
@@ -280,6 +291,13 @@ Done:
   `create_iso_header` and `opening.bnr`, with the apploader and stub built here); the
   bootloader includes it (`bootloader/flash_blob.S`). One 0x220-byte padding range is copied
   from the original (`docs/HACKS.md`).
+- RP2040 SDK configuration from the images: 16 MB flash (`PICO_FLASH_SIZE_BYTES`), no stdout
+  mutex, FatFs code page 437, TinyUSB's optional callbacks left undefined weak.
+- RP2040 exact build (`tools/rp_exact.py`, `docs/EXACT_BUILD.md`): both images byte-identical,
+  with every C function that matches placed at its original address and the rest of the bytes
+  taken from the original (bootloader 28065, main-ode 41450). `tools/check_all.sh` rebuilds
+  every image and `update.fpkg` and checks all of them against the original.
+- esp-serial-flasher: the fork's `esp_loader_connect` and `esp_loader_flash_start` match.
 
 Next, in order:
 
@@ -297,15 +315,22 @@ Next, in order:
    RAM code: `ram_a.c` (DI handlers, `di_worker`, `disk_write`), `ram_b.c` (ESP QSPI link),
    `ram_c.c` (`di_gpio_irq`, `bypass_enter`), `ram_d.c` (`cmd_seek`, `cmd_read`, `cmd_wkf`),
    `ram_e.c` (`cmd_ipc`, the 0xB5 handler, 0x2000178c-0x200035cc), `ram_f.c` (audio DMA IRQ,
-   `cmd_audio_config`, `di_setup`, `di_dispatch`). Flash: `bus_acquire`, `audio_reset`.
-   61 of 81 scored functions exact. Not yet written: `di_stream_net` 0x20004884,
-   `config_ini_handler` 0x10080ae8, the function that registers the DI handlers.
+   `cmd_audio_config`, `di_setup`, `di_dispatch`), `ram_g.c` (`di_stream_net`, readahead
+   cache), `ram_h.c` (audio buffer config and status). Flash: `bus_acquire`, `audio_reset`,
+   `flash_b.c` (`config_ini_handler`), the `register_*` handler constructors.
    Bootloader (all code runs from RAM): `app_a.c`, `app_b.c` (`main` 0x20000af0, update and
    boot flow), `app_c.c` (filesystem, update.fpkg install, ESP32/RP2040 flashing, handler
-   registration), `app_d.c` (DI handlers and core 1, the `.time_critical` run at 0x200161f0).
-   Not located: the esp-serial-flasher port layer. The images do not yet place C at the original addresses.
-3. FatFs and esp-serial-flasher: decompile the near-matched functions into the vendored
-   copies until they match.
+   registration), `app_d.c` (DI handlers and core 1, the `.time_critical` run at 0x200161f0),
+   `esp_port.c` (esp-serial-flasher port layer and ESP32 update calls).
+   Exact by `tools/funcdiff.py` at the `src.tsv` addresses: main-ode 82 of 95, bootloader 60
+   of 69. Not exact: main-ode `cmd_ipc`, `di_stream_net`, `qspi_init`, `qspi_send`,
+   `audio_fill`, `adpcm_decode_frame`, `cmd_read`, `di_worker`, `di_stream_file`,
+   `aud_dma_irq`, `cmd_audio_stream`, `flush_task`, `req_submit`; bootloader
+   `update_and_boot`, `fetch_update`, `install_update`, `install_file`, `flash_esp32`,
+   `flash_rp2040`, `esp_dma_read`, `usb_uart_bridge`, `loader_port_change_baudrate` (not
+   located in the image). Remaining work runs through `tools/permute_jobs.py` and
+   `tools/permute_run.sh`, with every kept variant reviewed for behaviour.
+3. FatFs: match `ff.c` function by function in the vendored copy (Analysis status).
 4. Test harness for the GameCube `.dol`s (stub, payload, `NONMATCHING` builds): boot them
    in a GameCube emulator with a scriptable debugger (Dolphin's GDB stub, or a Dolphin
    build with scripting), set breakpoints and compare state against the original build.
@@ -316,6 +341,7 @@ Next, in order:
    dual core, PIO, DMA, USB CDC, XIP; GDB stub; standalone program, not a library; PIO and
    DMA timing are functional models, per its README).
 
-Throughout: unmatched functions may sit as `.s` extracted from the original so each image
-builds identical; progress is the share of bytes coming from C. `tools/compare.py` (and
-`tools/funcdiff.py` per function) list the first mismatch.
+Throughout: the exact builds take every byte not covered by a matching function from the
+original, so each image stays identical; progress is the share of bytes coming from C
+(`tools/check_all.sh` prints it). `tools/compare.py` (and `tools/funcdiff.py` per function)
+list the first mismatch.
