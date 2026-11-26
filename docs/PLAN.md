@@ -261,7 +261,7 @@ exact. elm-chan's R0.15 patches (from the Internet Archive's copy of the patches
 longer hosted): unpatched R0.15 (`#if FS_LOCK` at ff.c:903) scores the same as patch 1;
 patches 2 (`FF_FS_REENTRANT` with several volumes) and 3 (`f_setlabel`) touch no code this
 config builds. Per function: `move_window` (main-ode 0x1008aa40) differs only in scheduling
-(the original loads before the `push`), and the original's function order differs from our
+(ours loads `winsect` before the `push`, the original after it, through `r4`; argument set-up order differs before the calls), and the original's function order differs from our
 build's (`remove_chain` directly follows `store_xdir`). `tools/permute.py` on 18 main-ode
 `ff.c` functions at size-matched addresses (300 iterations x 6 seeds each) made none exact;
 gains were `remove_chain` 36 -> 73 of 353 windows (branch hints and a swapped if/else, i.e. block

@@ -26,11 +26,19 @@ import callseq  # noqa: E402  (after OBJDUMP is set: funcdiff reads it on import
 
 
 def build_flags(img, srcpath=None):
-    """Compile flags of SRCPATH's object in build.ninja, else of <img>/main.c.o."""
+    """Compile flags of SRCPATH's object in build.ninja, else of <img>/main.c.o.
+
+    A copy outside the tree (a workspace ff.c) takes the flags of the one source in
+    build.ninja with the same file name, if there is exactly one.
+    """
     nin = open(os.path.expanduser("~/fd-build/fw/build.ninja")).read().split("\n")
     src = " " + os.path.abspath(srcpath) if srcpath else None
     i = next((n for n, l in enumerate(nin) if src and l.startswith("build ")
               and l.split(" || ")[0].endswith(src)), None)
+    if i is None and srcpath:
+        same = [n for n, l in enumerate(nin) if l.startswith("build ") and ".o:" in l
+                and l.split(" || ")[0].endswith("/" + os.path.basename(srcpath))]
+        i = same[0] if len(same) == 1 and not srcpath.endswith("main.c") else None
     if i is None:
         key = f"build {img}/CMakeFiles/flippydrive-{img}.dir/main.c.o"
         i = next(n for n, l in enumerate(nin) if l.startswith(key))

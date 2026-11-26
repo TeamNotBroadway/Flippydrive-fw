@@ -1,0 +1,8 @@
+0x1008aaa8	put_fat.part.0	356	1	callgraph:f_lseek
+0x1008ac0c	get_fat	504	1	callgraph:f_read (d2/11)
+0x1008b428	mount_volume	1768	1	callgraph:f_mount
+0x1008c4b0	create_chain	1280	1	callgraph:f_lseek
+0x1008dfe8	f_mount	132	1	callgraph:mount_fat (d4/8)
+0x1008e4e4	f_read	604	1	callgraph:di_stream_file (d2/11)
+0x1008ed3c	f_lseek	820	1	callgraph:cmd_read (d7/35)
+0x1008fd30	f_mkfs	2270	1	callgraph:mount_fat (d4/8)
