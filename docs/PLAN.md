@@ -273,6 +273,16 @@ LTO is not it: `ff.c` and `ffunicode.c` with `-flto`, partial-linked to code
 953 / 1262, -Os 60 / 79; partition=one and a -O2 link give the -O3 numbers), `move_window` keeps
 the same scheduling difference, and `store_xdir` is followed by `dir_remove`, not the original's
 `remove_chain`.
+Decompilation pilot (Ghidra export of the 46 functions in main-ode 0x1008a830-0x10090f0c,
+`tools/ghidra_decomp.sh`; hand rewrites in `tools/ws.sh` workspaces plus the permuter):
+`move_window` 27/36, `f_close` 22 -> 24/46, `f_closedir` 22 -> 24/46, `put_utf` 25/115, none
+exact, calls in order in all four. The remaining differences are register choice, constant
+materialisation (0x100 built from a live 1 as `(1 + 127) << 1`) and scheduling, which no source
+form tried changes. `FATFS`, `FIL` and `FFOBJID` offsets in the decompiles equal ours, but
+main-ode's inlined `dec_share` bounds the index at 2 (`cmp r3, #1`), so main-ode was built with
+`FF_FS_LOCK` 2: that raises main-ode's whole-file score 2026 -> 2111 and lowers the bootloader's
+2418 -> 2327 (LOCK 1: 1984 / 2257; LOCK 4: 2018 / 2358). With `FF_USE_LFN` that is a second
+option on which the images disagree.
 
 Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
 config, esp-serial-flasher 3937d49 with MD5 off). esp-serial-flasher's `esp_loader.c` carries the
