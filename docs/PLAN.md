@@ -268,6 +268,11 @@ gains were `remove_chain` 36 -> 73 of 353 windows (branch hints and a swapped if
 layout), `mount_volume` 187 -> 193, `f_mkfs` 46 -> 48, `f_mount` 6 -> 7, the rest unchanged.
 None was applied: the exact build places only exact functions, and the variants would replace
 public source with mutations.
+LTO is not it: `ff.c` and `ffunicode.c` with `-flto`, partial-linked to code
+(`-r -flinker-output=nolto-rel`), score lower at every level (-O3 1838 / 2187 of 14831, -O2
+953 / 1262, -Os 60 / 79; partition=one and a -O2 link give the -O3 numbers), `move_window` keeps
+the same scheduling difference, and `store_xdir` is followed by `dir_remove`, not the original's
+`remove_chain`.
 
 Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
 config, esp-serial-flasher 3937d49 with MD5 off). esp-serial-flasher's `esp_loader.c` carries the
