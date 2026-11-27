@@ -17,9 +17,10 @@ the image and the workspace.
 
 ## Inputs
 
-- Application functions: Ghidra's decompile is `FUN_<addr>` in `decomp/<image>/app.c` (search
-  for `^[a-z].* FUN_<addr>(`; read only that function). The workspace holds the image's whole
-  source directory; our current C is the function of the same name there.
+- Application functions: `python3 tools/ghidra_fn.py IMAGE ADDR` (under WSL, ADDR in hex without
+  0x) prints Ghidra's decompile with calls and literal-pool globals renamed to our names. The
+  workspace holds the image's whole source directory; our current C is the function of the same
+  name there.
 - Library functions: Ghidra's decompile is `decomp/<image>/<lib>/0x<addr>.c` where one exists.
 - Ghidra's names are stale guesses; FUN_xxx are unnamed. `syms/<image>.src.tsv` and
   `syms/<image>.lib.tsv` map addresses to our names.
@@ -46,7 +47,10 @@ For a compiler clone in the original (fewer parameters), score our clone name, e
 
 ## Method
 
-1. Read the original's code and the ids notes; apply the logic edits. Score.
+1. Read the original's code and the ids notes; apply the logic edits. Score. If reshaping our C
+   stalls (block order or call order differs), rewrite the function from `ghidra_fn.py`'s output
+   instead: keep its statement order, branch structure and conditions, and write it as readable C
+   with our types, struct fields and macros. Keep the rewrite only if it scores higher.
 2. Read the `--show` diff and reshape: statement order, temporaries, types, condition form,
    early returns. Keep a change only if hits rise.
 3. Permuter once when stuck. Stop at EXACT, after about 30 score runs, or after 10 runs without
