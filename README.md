@@ -20,15 +20,13 @@ Known broken or unverified (details in `docs/HACKS.md`):
   (`bootloader/esp_port.c`), and esp-serial-flasher's two fork-modified functions
   (`esp_loader_connect`, `esp_loader_flash_start`) are now matched in the vendored source
   (`docs/HACKS.md`). Untested on hardware; a bad bootloader may not be recoverable.
-- FatFs (vendored R0.15) does not match: no `ff.c` function is exact in either image
-  (`docs/PLAN.md`, Analysis status). The exact build takes its bytes from the original.
 - Functions that are not exact matches (bootloader 9 of 69, main-ode 13 of 95, scored by
   `tools/funcdiff.py` at their `src.tsv` addresses) are checked for call order only.
   Conditions, constants and stores can still differ from the original.
 - Some main-ode globals are unidentified, and their sizes are guessed.
 - Functions are not at the original addresses.
 - The exact build takes 8 of 67 bootloader and 10 of 55 main-ode `src.tsv` functions from the
-  original, and 28065 and 41450 bytes in all (`status.tsv` and `gaps.tsv` in its output list
+  original, and 3612 and 17187 bytes in all (`status.tsv` and `gaps.tsv` in its output list
   them; `tools/check_all.sh` prints the totals).
 
 ## Targets

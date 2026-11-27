@@ -55,9 +55,11 @@ Placeholders and guesses that a byte-identical build currently depends on.
     `loader_md5_cmd` and `loader_flash_end_cmd` are absent from the image (`MD5_ENABLED=0`,
     dead-code-eliminated), not modified. `rp_exact.py` checks the strings both functions point
     to against the original.
-  - FatFs: libmatch finds 1 of 30 verbatim, but that is the section-anchor data addressing
-    (noted in `third_party/fatfs/CMakeLists.txt`), not a modification; FatFs is effectively
-    unmodified.
+  - FatFs R0.15 (`third_party/fatfs`): the vendor's only source edit found is
+    `#pragma GCC optimize ("O2")` at the top of `ff.c` (the firmware is built at -O3). Its
+    position in the file is not recoverable from the binary; the top is assumed. With it and
+    the config in `ffconf.h` (main-ode overrides in `CMakeLists.txt`) every located `ff.c`
+    function is exact: main-ode 40, bootloader 41 (`syms/*.fatfs.tsv`, `tools/lib_score.py`).
 - `gamecube/payload/source/main.c`: `boot_menu`, `boot_main_app`, `main_menu` and `main`
   have C under `NONMATCHING` that does not compile to the original (`main_menu`: the spill
   slots of the logo address and the version format string are swapped. Their costs tie, so

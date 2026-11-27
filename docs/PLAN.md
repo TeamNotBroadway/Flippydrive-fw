@@ -225,19 +225,21 @@ Library functions include exact matches (newlib, libgcc, SDK, TinyUSB, the vendo
 libraries) and near matches for FatFs and esp-serial-flasher, located by
 `tools/nearmatch.py` (Ghidra comment "near match"). "Ambiguous" exact matches (identical
 code under several names, e.g. newlib's `_read_r`/`_write_r` family) list every name.
-Neither FatFs nor esp-serial-flasher is byte-identical to any public source:
+Neither FatFs nor esp-serial-flasher is byte-identical to its public source:
 
-- FatFs (both images; exFAT and mkfs on, strings `NO NAME    FAT32`). Only `ff_wtoupper`,
-  `ff_uni2oem`, `ff_oem2uni` (ffunicode.c, CP437) match exactly in any of R0.14-R0.15b, so
-  the compiler flags are right (`ff_wtoupper` matches at -O3/-O2 only) but ff.c's config or
-  source differs. `tools/confsweep.py --fuzzy` (greedy over 24 ffconf options, scored by
-  8-byte windows) ranks R0.15 highest for the bootloader (2327 vs 1806-2231). Best config:
-  `third_party/fatfs/ffconf.h`. Building without `-fdata-sections` is required (section anchors);
-  remaining differences are register allocation and scheduling. Fedora's GCC 14.1.0
-  gives the same output as Arch 14.2.0, and GCC 15.1.0 matches worse (1273 windows vs
-  2237), so the compiler is not the cause; ff.c is probably modified. Arm GNU 14.2.Rel1
-  (Windows build, same flags, current config) scores 2021 / 2418 windows against Arch's
-  2026 / 2418 (main-ode / bootloader).
+- FatFs R0.15 (both images; exFAT and mkfs on, code page 437) matches with one vendor edit:
+  `ff.c` was compiled under `#pragma GCC optimize ("O2")` inside the -O3 build. With it every
+  located `ff.c` function is exact (main-ode 40, bootloader 41; `syms/*.fatfs.tsv`, scored by
+  `tools/lib_score.py`). Config (`third_party/fatfs/ffconf.h`): both images use
+  `FF_USE_EXPAND` 0 and `FF_USE_STRFUNC` 0 (the original has no `find_bitmap` or
+  `tchar2uni`; with one caller each they inline) and `FF_FS_NOFSINFO` 0; main-ode also uses
+  `FF_FS_LOCK` 2 and `FF_USE_LFN` 2, the bootloader 3 and 3. How it was found: scoring only
+  the functions located in the image at their addresses (`tools/confsweep_at.py`,
+  `tools/flagsweep_at.py`) instead of whole-file fuzzy matching, which rewarded options that
+  add functions absent from the image. The flag search converged on -O2 with -O3's four
+  inlining parameters, which is what an O2 optimize pragma in an -O3 compile produces. Ruled
+  out before that: other GCCs (10.3-15.1, Arm's 14.2.Rel1 builds identically to Arch's),
+  clang 19, LTO, R0.15a and R0.15 patch 3, and ld_word/ld_clust source variants.
 - esp-serial-flasher (bootloader, RAM 0x200099fa-0x2000a8ec). No tag v1.0.0-v1.8.0 matches
   beyond 4-5 small functions. The string `ESP8266 does not support change baudrate
   command.` exists only between commits 5264d5a and adc18ff (first in v1.0.0), in
@@ -249,57 +251,8 @@ Neither FatFs nor esp-serial-flasher is byte-identical to any public source:
   (`current_baud = %d`, `Invalid flash image segment!`). The fork's two modified functions in
   `esp_loader.c` are now reproduced byte-exact (`docs/HACKS.md`).
 
-FatFs's code page is 437 (`ff_uni2oem`/`ff_oem2uni` and ffunicode's `.rodata` place exactly;
-932 had been chosen before). A fuzzy re-sweep with 437 fixed (`tools/sweep/fatfs.json`,
-main-ode) raised the window score 2026 -> 2197 with no `ff.c` function exact; its config
-needs `get_fattime` and raised the bootloader's original bytes, so it is not used. No
-`ff.c` section places in either image: the remaining FatFs work is source-level.
-Whole-file checks of `ff.c` (matched windows against main-ode / bootloader, current config at
--O3: 2026 / 2418 of 14769; three exact functions, all in ffunicode.c): -O2 1081 / 1391, -Os 62 /
-82, -O1 246 / 281; `FF_MAX_SS` 512 1135 / 1418; `FF_FS_LOCK` 0, `FF_FS_EXFAT` 0 and
-`FF_LFN_UNICODE` 0 all lower; `FF_USE_LFN` 2 raises main-ode to 2296 but lowers the bootloader to
-2080, so the two images may use different FatFs configs. No variant makes an `ff.c` function
-exact. elm-chan's R0.15 patches (from the Internet Archive's copy of the patches page; no
-longer hosted): unpatched R0.15 (`#if FS_LOCK` at ff.c:903) scores the same as patch 1;
-patches 2 (`FF_FS_REENTRANT` with several volumes) and 3 (`f_setlabel`) touch no code this
-config builds. Per function: `move_window` (main-ode 0x1008aa40) differs only in scheduling
-(ours loads `winsect` before the `push`, the original after it, through `r4`; argument set-up order differs before the calls), and the original's function order differs from our
-build's (`remove_chain` directly follows `store_xdir`). `tools/permute.py` on 18 main-ode
-`ff.c` functions at size-matched addresses (300 iterations x 6 seeds each) made none exact;
-gains were `remove_chain` 36 -> 73 of 353 windows (branch hints and a swapped if/else, i.e. block
-layout), `mount_volume` 187 -> 193, `f_mkfs` 46 -> 48, `f_mount` 6 -> 7, the rest unchanged.
-None was applied: the exact build places only exact functions, and the variants would replace
-public source with mutations.
-LTO is not it: `ff.c` and `ffunicode.c` with `-flto`, partial-linked to code
-(`-r -flinker-output=nolto-rel`), score lower at every level (-O3 1838 / 2187 of 14831, -O2
-953 / 1262, -Os 60 / 79; partition=one and a -O2 link give the -O3 numbers), `move_window` keeps
-the same scheduling difference, and `store_xdir` is followed by `dir_remove`, not the original's
-`remove_chain`.
-Decompilation pilot (Ghidra export of the 46 functions in main-ode 0x1008a830-0x10090f0c,
-`tools/ghidra_decomp.sh`; hand rewrites in `tools/ws.sh` workspaces plus the permuter):
-`move_window` 27/36, `f_close` 22 -> 24/46, `f_closedir` 22 -> 24/46, `put_utf` 25/115, none
-exact, calls in order in all four. The remaining differences are register choice, constant
-materialisation (0x100 built from a live 1 as `(1 + 127) << 1`) and scheduling, which no source
-form tried changes. `FATFS`, `FIL` and `FFOBJID` offsets in the decompiles equal ours, but
-main-ode's inlined `dec_share` bounds the index at 2 (`cmp r3, #1`), so main-ode was built with
-`FF_FS_LOCK` 2: that raises main-ode's whole-file score 2026 -> 2111 and lowers the bootloader's
-2418 -> 2327 (LOCK 1: 1984 / 2257; LOCK 4: 2018 / 2358). With `FF_USE_LFN` that is a second
-option on which the images disagree.
-Other GCCs (Linux builds under `C:\Tools`, sha256 checked against Arm's for 12.3 and 13.3; 10.3
-has no published sha256), current config, main-ode / bootloader at -O3: Arm GNU 10.3-2021.10
-752 / 908, 12.3.Rel1 1580 / 1838, 13.3.Rel1 1704 / 1970, Arch 14.2 2026 / 2418; -O2 and -Os
-lower for each. The score rises with the version up to 14 and falls at 15.1, so FatFs was built
-by a GCC 14. Extra flags with Arch 14.2, none higher than plain -O3: `-funsigned-char` and
-`-fshort-enums` the same; `-fstack-protector` 2017 / 2368, `-fno-ipa-sra` 2009 / 2402,
-`-fwrapv` 1980 / 2369, `-fno-tree-vectorize` 1971 / 2361, `-fno-strict-aliasing` 1739 / 2084,
-`-fno-inline-functions` 894 / 1085, `-fno-omit-frame-pointer` 1127 / 1251, `-Og` 215 / 221;
-as C++ (`-x c++ -fpermissive`) 1861 / 2307; `-std=gnu89` cannot build exFAT. Not clang: LLVM
-Embedded Toolchain for Arm 19.1.5 (`--target=armv6m-none-eabi`) matches 6-9 windows at -O3, -O2,
--Os and -Oz.
-
-Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
-config, esp-serial-flasher 3937d49 with MD5 off). esp-serial-flasher's `esp_loader.c` carries the
-fork's edits; FatFs is unmodified (`docs/HACKS.md`).
+Both are vendored in `third_party/` from the closest public source (FatFs R0.15,
+esp-serial-flasher 3937d49 with MD5 off); `docs/HACKS.md` lists their edits.
 
 ## Approach
 
@@ -307,7 +260,8 @@ Done:
 
 - RP2040: toolchain (Arch GCC 14.2.0, pico-sdk 2.1.1) found; skeleton builds link at the
   original addresses (`tools/wsl_build.sh . fw`); library functions named in Ghidra.
-- FatFs R0.15 and esp-serial-flasher 3937d49 vendored as the closest public sources.
+- FatFs R0.15 and esp-serial-flasher 3937d49 vendored as the closest public sources; FatFs
+  exact in both images (Analysis status).
 - GameCube disc extracted; stub, gzip stream and payload understood; payload toolchain
   (devkitPPC r47.1, libogc2 70f80d8) found; all three images load in Ghidra.
 - GameCube stub `main.dol` builds byte-identical from `gamecube/stub` (cubeboot `entry/`).
@@ -327,7 +281,7 @@ Done:
   mutex, FatFs code page 437, TinyUSB's optional callbacks left undefined weak.
 - RP2040 exact build (`tools/rp_exact.py`, `docs/EXACT_BUILD.md`): both images byte-identical,
   with every C function that matches placed at its original address and the rest of the bytes
-  taken from the original (bootloader 28065, main-ode 41450). `tools/check_all.sh` rebuilds
+  taken from the original (bootloader 3612, main-ode 17187). `tools/check_all.sh` rebuilds
   every image and `update.fpkg` and checks all of them against the original.
 - esp-serial-flasher: the fork's `esp_loader_connect` and `esp_loader_flash_start` match.
 
@@ -362,8 +316,7 @@ Next, in order:
    `flash_rp2040`, `esp_dma_read`, `usb_uart_bridge`, `loader_port_change_baudrate` (not
    located in the image). Remaining work runs through `tools/permute_jobs.py` and
    `tools/permute_run.sh`, with every kept variant reviewed for behaviour.
-3. FatFs: match `ff.c` function by function in the vendored copy (Analysis status).
-4. Test harness for the GameCube `.dol`s (stub, payload, `NONMATCHING` builds): boot them
+3. Test harness for the GameCube `.dol`s (stub, payload, `NONMATCHING` builds): boot them
    in a GameCube emulator with a scriptable debugger (Dolphin's GDB stub, or a Dolphin
    build with scripting), set breakpoints and compare state against the original build.
    Needed before `NONMATCHING` C is trusted: matching bytes prove nothing about a
