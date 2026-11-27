@@ -17,19 +17,24 @@ __attribute__((noinline, noclone)) void req_submit(void *req, uint32_t req_len, 
     mutex_t *fm = &flash_mutex;
     mutex_enter_blocking(&link_mutex);
     mutex_enter_blocking(fm);
-    if (esp_rx.wr != esp_rx.rd) {
-        esp_rx.wr = esp_rx.rd;
+    if (__builtin_expect(!!(esp_rx.wr != esp_rx.rd), 1)) {
+        { __typeof__(esp_rx.rd) t761 = esp_rx.rd; esp_rx.wr = t761; }
         esp_drain();
     }
+    uint32_t done;
     mutex_exit(&link_mutex);
-    int done;
-    if (qspi_send(req, req_len, len) == 0 && (done = 0, len != 0)) {
-        do {
-            uint32_t got[2];
-            got[0] = 0;
-            esp_dma_read(buf + done, len - done, got, 0);
-            done += got[0];
-        } while (done < len);
+    if (__builtin_expect(!!(qspi_send(req, req_len, len) == 0), 1)) {
+        uint32_t zero;
+        done = 0;
+        zero = 0;
+        if (len != 0) {
+            do {
+                uint32_t got[2];
+                got[0] = zero;
+                esp_dma_read(buf + done, len - done, got, 0);
+                done += got[0];
+            } while (len > done);
+        }
     }
     mutex_exit(fm);
 }
