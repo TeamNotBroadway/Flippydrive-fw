@@ -58,12 +58,13 @@ void __not_in_flash_func(di_stream_file)(uint32_t len)
                 return;
             }
             if (got == 0) {
-                memset(buf, 0, (int)n);
                 got = n;
+                memset(buf, 0, (int)n);
             }
+            uint32_t words = (got + 3) >> 2;
             dma_channel_set_read_addr(ch, buf, false);
-            dma_channel_set_trans_count(ch, (got + 3) >> 2, true);
             len -= got;
+            dma_channel_set_trans_count(ch, words, true);
             dma_channel_wait_for_finish_blocking(ch);
         } while (len != 0);
     }
