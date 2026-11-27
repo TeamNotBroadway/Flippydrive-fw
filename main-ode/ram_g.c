@@ -70,7 +70,7 @@ int __not_in_flash_func(di_stream_net)(uint32_t addr, uint32_t len, uint sm, uin
         mult = 2;
     } else {
         uint32_t cur = net_readahead;
-        mult = cur + 2;
+        mult = 2 + cur;
         int fit = 0x8000 / len;
         if (fit < mult)
             mult = fit;
@@ -100,15 +100,15 @@ int __not_in_flash_func(di_stream_net)(uint32_t addr, uint32_t len, uint sm, uin
 refill:
         mutex_enter_blocking(&flash_mutex);
         esp_drain();
-        uint32_t whole = esp_rx.split == 0;
+        uint32_t whole = 0 == esp_rx.split;
         int32_t max = whole * 0x8000 + 0x25000;
-        uint32_t total = mult * len;
+        uint32_t total = len * mult;
         if (total > max)
             total = max;
         if (unlikely(total < 0x400))
             total = 0x400;
         esp_rx.base = addr;
-        esp_rx.wr = total + addr;
+        esp_rx.wr = addr + total;
         esp_rx.rd = addr;
         esp_rx.active = 1;
         memset((uint8_t *)&r + 6, 0, 26);
@@ -116,12 +116,12 @@ refill:
         qspi_send(&r, 32, total);
         mutex_exit(&flash_mutex);
     }
-    uint32_t left = len;
+    int32_t left = len;
 
     uint32_t pos = addr;
     mutex_exit(&link_mutex);
     while (left) {
-        uint32_t off;
+        int32_t off;
         for (;;) {
             mutex_enter_blocking(&link_mutex);
             off = pos - esp_rx.base;
