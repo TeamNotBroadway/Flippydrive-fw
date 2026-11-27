@@ -156,43 +156,43 @@ __attribute__((noinline)) void __not_in_flash_func(hexdump)(const uint8_t *buf, 
 
 __attribute__((noinline)) int __not_in_flash_func(flash_esp32)(FIL *f, uint32_t off, uint32_t addr, uint32_t len, bool finish)
 {
-    if (0 == len)
+    if (len == 0)
         return -1;
     if (len & 0x1ff)
         return -2;
-    int res = f_lseek(f, 0x200 + off);
-    if (unlikely((int32_t)res))
+    uint res = f_lseek(f, off + 0x200);
+    if (__builtin_expect(!!(unlikely(res)), 0))
         return res;
-    fd_status.show_progress_bar = 1;
-    fd_status.progress = 0;
+    { __typeof__(1) t772 = 1; fd_status.show_progress_bar = t772; }
+    { __typeof__(0) t761 = 0; fd_status.progress = t761; }
     strcpy(fd_status.text, "Erasing ESP32");
-    res = esp_flash_start((int32_t)addr, len, 0x200);
+    { __typeof__(esp_flash_start(addr, len, 0x200)) t954 = esp_flash_start(addr, len, 0x200); res = t954; }
     if (unlikely(res))
         return res;
-    uint32_t blocks = len >> 9;
     strcpy(fd_status.text, "Programming ESP32");
-    unsigned end = blocks * 1000;
-    unsigned progress = 0;
+    int blocks = len >> 9;
+    int32_t end = blocks * 1000;
+    uint progress = 0;
     do {
         UINT br;
-        res = f_read(f, xfer_buf, 0x200, &br);
+        { __typeof__(f_read(f, xfer_buf, 0x200, &br)) t144 = f_read(f, xfer_buf, 0x200, &br); res = t144; }
         if (likely(unlikely(res))) {
-            cdc_printf("Read ESP32 ERROR %d\n", res);
+            cdc_printf("Read ESP32 ERROR %d\n", (uint32_t)res);
             return res;
         }
-        if (!br)
+        if (0 == br)
             break;
-        fd_status.progress = __builtin_bswap16(progress / blocks);
-        res = esp_flash_write(addr, xfer_buf, 0x200);
-        if (likely(unlikely((int32_t)res))) {
+        { __typeof__(__builtin_bswap16(progress / blocks)) t553 = __builtin_bswap16(progress / blocks); fd_status.progress = t553; }
+        { __typeof__(esp_flash_write(addr, xfer_buf, 0x200)) t924 = esp_flash_write(addr, xfer_buf, 0x200); res = t924; }
+        if (__builtin_expect(!!(likely(unlikely(res))), 0)) {
             cdc_printf("Write ESP32 ERROR\n");
             return res;
         }
         progress += 1000;
         addr += 0x200;
-    } while (progress != end);
+    } while (end != progress);
     strcpy(fd_status.text, "ESP32 Programmed");
-    if (likely(finish)) {
+    if (__builtin_expect(!!(likely(finish)), 1)) {
         esp_flash_finish();
         loader_port_reset_target();
     }
