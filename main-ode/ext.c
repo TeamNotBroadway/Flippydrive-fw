@@ -24,16 +24,13 @@ __attribute__((noinline, noclone)) void req_submit(void *req, uint32_t req_len, 
     uint32_t done;
     mutex_exit(&link_mutex);
     if (__builtin_expect(!!(qspi_send(req, req_len, len) == 0), 1)) {
-        uint32_t zero;
+        uint32_t zero = 0;
         done = 0;
-        zero = 0;
-        if (len != 0) {
-            do {
-                uint32_t got[2];
-                got[0] = zero;
-                esp_dma_read(buf + done, len - done, got, 0);
-                done += got[0];
-            } while (len > done);
+        while (done < len) {
+            uint32_t got;
+            got = zero;
+            esp_dma_read(buf + done, len - done, &got, 0);
+            done += got;
         }
     }
     mutex_exit(fm);
