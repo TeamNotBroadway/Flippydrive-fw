@@ -13,7 +13,7 @@
 0x1008bf60	store_xdir	428	1	ids_A
 0x1008c10c	remove_chain	932	1	ids_A
 0x1008c4b0	create_chain	1280	1	ids_A
-0x1008c9b0	dir_next.constprop.0	440	1	ids_A
+0x1008c9b0	dir_next	440	1	ids_A
 0x1008cb68	load_xdir	328	1	ids_A
 0x1008ccb4	dir_read.constprop.0	700	1	ids_B
 0x1008cf70	dir_find	964	1	ids_B

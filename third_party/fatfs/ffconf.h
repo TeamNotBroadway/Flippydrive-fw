@@ -38,7 +38,9 @@
 /* This option switches fast seek function. (0:Disable or 1:Enable) */
 
 
+#ifndef FF_USE_EXPAND	/* main-ode overrides: third_party/fatfs/CMakeLists.txt */
 #define FF_USE_EXPAND	1
+#endif
 /* This option switches f_expand function. (0:Disable or 1:Enable) */
 
 
@@ -56,7 +58,9 @@
 /* This option switches f_forward() function. (0:Disable or 1:Enable) */
 
 
+#ifndef FF_USE_STRFUNC	/* main-ode overrides: third_party/fatfs/CMakeLists.txt */
 #define FF_USE_STRFUNC	1
+#endif
 #define FF_PRINT_LLI	1
 #define FF_PRINT_FLOAT	1
 #define FF_STRF_ENCODE	3

@@ -5,6 +5,10 @@
 # (ffconf.h). main-ode's differs in three options, read from its code: FF_FS_LOCK 2 (dec_share
 # and clear_share bound the table at 2), FF_USE_LFN 2 (no ff_memalloc path, lfnbuf/dirbuf not
 # set in mount_volume) and FF_FS_NOFSINFO 0 (mount_volume loads free_clst from FSInfo).
+# FF_USE_EXPAND 0 and FF_USE_STRFUNC 0 leave find_bitmap and tchar2uni one caller each, so they
+# inline into create_chain and create_name as in the original, which has neither as a function.
+# -fno-ipa-cp-clone: the original's dir_next keeps its stretch parameter (callers pass 0 and 1)
+# instead of a .constprop clone; with it ff.c's function order equals the original's.
 set(FATFS_SOURCES ff.c ffunicode.c ffsystem.c)
 add_library(fatfs STATIC ${FATFS_SOURCES})
 add_library(fatfs_main_ode STATIC ${FATFS_SOURCES})
@@ -12,4 +16,6 @@ foreach(t fatfs fatfs_main_ode)
     target_include_directories(${t} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
     target_compile_options(${t} PRIVATE -ffunction-sections -fno-data-sections)
 endforeach()
-target_compile_definitions(fatfs_main_ode PUBLIC FF_FS_LOCK=2 FF_USE_LFN=2 FF_FS_NOFSINFO=0)
+target_compile_definitions(fatfs_main_ode PUBLIC FF_FS_LOCK=2 FF_USE_LFN=2 FF_FS_NOFSINFO=0
+    FF_USE_EXPAND=0 FF_USE_STRFUNC=0)
+target_compile_options(fatfs_main_ode PRIVATE -fno-ipa-cp-clone)
