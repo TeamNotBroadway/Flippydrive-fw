@@ -10,6 +10,8 @@ the image and the workspace.
 - The vendored source is the public release; the vendor edited it. Reproduce the vendor's edits
   (logic the original has and the public source does not, or the reverse), then shape the C until
   it compiles to the original's bytes.
+- The goal is a byte-identical compile of the original, bugs included. Never fix anything the
+  original does wrong: reproduce it, and list it in the report so it can be noted.
 - Every logic change must be visible in the original's code (Ghidra output or disassembly).
   Do not change behaviour to gain windows without that evidence.
 - Keep edits inside the function where possible. If a helper, macro or prototype must change,
