@@ -16,7 +16,7 @@ ROOT = pathlib.Path(P.ROOT)
 
 
 def defining(d, func):
-    pat = re.compile(r"^[A-Za-z_][^;]*\b%s\b\)?\s*\(" % re.escape(func), re.M)
+    pat = re.compile(r"^[A-Za-z_][^;\n]*\b%s\b\)?\s*\([^;\n]*$" % re.escape(func), re.M)  # not a prototype
     hits = [p for p in sorted(d.glob("*.c")) if pat.search(p.read_text(errors="replace"))]
     if len(hits) != 1:
         sys.exit(f"{func}: defined in {len(hits)} files under {d}")

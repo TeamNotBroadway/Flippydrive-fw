@@ -281,11 +281,11 @@ int __not_in_flash_func(install_update)(const char *path)
 {
     uint8_t buf[512];
     FIL f;
-    cdc_printf("Installing update %s\n", path);
     struct fpkg_header hdr;
     fd_status.show_video = 1;
     fd_status.show_progress_bar = 1;
     fd_status.progress = 0;
+    cdc_printf("Installing update %s\n", path);
     UINT br;
     if (f_open(&f, path, FA_READ))
         return 1;
@@ -299,8 +299,7 @@ int __not_in_flash_func(install_update)(const char *path)
     cdc_printf("Update contains %d parts\n", count);
     esp_fast_start();
     for (uint32_t i = 0; i < count; i++) {
-        int32_t len = hdr.size[i];
-        uint off = hdr.offset[i];
+        uint32_t len = hdr.size[i];
         struct fim_header *img = (struct fim_header *)buf;
         cdc_printf("DEBUG image_length = 0x%x\n", len);
         if (len == 0)
@@ -309,6 +308,7 @@ int __not_in_flash_func(install_update)(const char *path)
             cdc_printf("ERROR image size too large\n");
             return 1;
         }
+        uint off = hdr.offset[i];
         cdc_printf("DEBUG image_offset = 0x%x\n", off);
         unsigned res = f_lseek(&f, off);
         if (res) {
