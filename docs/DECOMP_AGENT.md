@@ -37,8 +37,10 @@ IMAGE is `main-ode` or `bootloader`. For a long function, `--show` output is lon
 
 `score` prints `hits/total size addr first-diff name calls distance N`, then ours beside the
 original ('*' marks differing lines). Goal: EXACT and calls distance 0. `permute` writes its
-best variant to `permute_out/FUNC.best.c` and does not touch the workspace: take ideas from it
-by hand, as readable C (no `__builtin_expect`, no `!(!(x))`, no pointless temporaries).
+best variant to `permute_out/FUNC.best.c` and does not touch the workspace: copy its function
+body into the workspace when it scores higher. Byte match comes first; readability (names,
+comments, removing odd temporaries, `__builtin_expect`, `!(!(x))`) is restored after the image
+matches, so do not reject a variant for looking unnatural.
 
 If the function is not emitted on its own (inlined into its callers in our build but not in the
 original), `score` says so: add `__attribute__((noinline))` only if the original calls it.
@@ -53,7 +55,7 @@ For a compiler clone in the original (fewer parameters), score our clone name, e
    with our types, struct fields and macros. Keep the rewrite only if it scores higher.
 2. Read the `--show` diff and reshape: statement order, temporaries, types, condition form,
    early returns. Keep a change only if hits rise.
-3. Permuter once when stuck. Stop at EXACT, after about 30 score runs, or after 10 runs without
+3. Permuter when stuck (up to three runs, continuing from the best so far). Stop at EXACT, after about 30 score runs, or after 10 runs without
    progress.
 
 ## Report (short, plain text)

@@ -14,14 +14,15 @@
 struct req { uint32_t magic; uint8_t cmd, arg; uint16_t pad; uint32_t w[6]; };
 
 __attribute__((noinline, noclone)) void req_submit(void *req, uint32_t req_len, uint8_t *buf, uint32_t len) {
+    mutex_t *fm = &flash_mutex;
     mutex_enter_blocking(&link_mutex);
-    mutex_enter_blocking(&flash_mutex);
+    mutex_enter_blocking(fm);
     if (esp_rx.wr != esp_rx.rd) {
         esp_rx.wr = esp_rx.rd;
         esp_drain();
     }
     mutex_exit(&link_mutex);
-    uint32_t done;
+    int done;
     if (qspi_send(req, req_len, len) == 0 && (done = 0, len != 0)) {
         do {
             uint32_t got[2];
@@ -30,7 +31,7 @@ __attribute__((noinline, noclone)) void req_submit(void *req, uint32_t req_len, 
             done += got[0];
         } while (done < len);
     }
-    mutex_exit(&flash_mutex);
+    mutex_exit(fm);
 }
 
 void req_clear_busy(void) {
