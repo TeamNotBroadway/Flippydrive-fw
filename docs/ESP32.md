@@ -80,13 +80,22 @@ are the reference: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/s
    USB (`usb_uart_bridge`) and drives its boot/reset lines (`loader_port_enter_bootloader`,
    `bootloader/esp_port.c`): boot low, reset pulse, boot high. But `usb_uart_bridge` injects a
    `\r` before every byte equal to `bridge_escape` (BSS-zero, so every `0x00` byte), which
-   corrupts esptool/espefuse's binary SLIP framing. The diagnostic build adds a **clean-bridge**
-   command for this: build with `-DFD_ESP_EXTRACT=ON`, send `0x11` on the USB-CDC control channel
-   (the stock bridge is `0x12`), and `clean_bridge` (`bootloader/app_a.c`) holds IO0 low, releases
-   reset into download mode, and bridges USB<->UART byte-for-byte with no escape injection. Then
-   run `esptool.py` / `espefuse.py` against that port. The command is `#ifdef`-guarded, so the
-   default build is byte-identical to the original; pack it into a recovery image with
-   `tools/recovery.py pack --bootloader` (see [RECOVERY.md](RECOVERY.md)).
+   corrupts esptool/espefuse's binary SLIP framing. Two ways round it:
+   - **Patch build** (preferred): `python3 tools/patch_bootloader.py OUTDIR` writes the original
+     bootloader with 2 bytes changed: the `beq` that takes the `\r` path (RAM 0x20000198, flash
+     0x10025cd0) becomes a `nop`, so the stock `0x12` bridge passes every byte through. Every
+     other byte is the original's, so no decompiled C runs; the tool checks that. It also writes
+     `OUTDIR/update.fpkg` with that entry replaced. The bridge still sends its `0x06`
+     acknowledgement first. Not tested on hardware.
+   - **C build:** build with `-DFD_ESP_EXTRACT=ON` and send `0x11` on the USB-CDC control
+     channel; `clean_bridge` (`bootloader/app_a.c`) does the same setup and bridges byte for
+     byte. This build runs the decompiled C for every function, including the 8 that are not
+     byte-identical (README, Decompilation status), so it is less safe. Adding `0x11` to the
+     original by patching instead needs a RAM trampoline (`main` runs from RAM and a `bl` cannot
+     reach appended flash code), and no free RAM is identified.
+
+   Then run `esptool.py` / `espefuse.py` against that port. Pack either image into a recovery
+   image with `tools/recovery.py pack --bootloader` (see [RECOVERY.md](RECOVERY.md)).
 2. **Read the eFuse state:** `espefuse.py -p PORT summary`. The decisive bits are the flash
    encryption mode and `DISABLE_DL_DECRYPT` / `DISABLE_DL_CACHE`. `FLASH_CRYPT_CONFIG` is
    readable; the key block is read-protected and will not read back.
