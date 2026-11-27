@@ -1,7 +1,8 @@
-# Library function matching: agent brief
+# Function matching: agent brief
 
-Instructions for one agent matching one library function (FatFs so far) against the original
-image. The task prompt names the function, its address and the workspace.
+Instructions for one agent matching one function against the original image: a vendored
+library function or an application function. The task prompt names the function, its address,
+the image and the workspace.
 
 ## Rules
 
@@ -16,18 +17,22 @@ image. The task prompt names the function, its address and the workspace.
 
 ## Inputs
 
-- Ghidra's decompile of the original: `decomp/main-ode/fatfs/0x<addr>.c`. Its names are stale
-  guesses; FUN_xxx are unnamed. Known: 0x10080734 `disk_read`, 0x10092c30 `disk_write`.
-- Identified differences per address: `decomp/main-ode/fatfs/ids_A.md` and `ids_B.md`.
-- Struct layouts equal ours (`ff.h`); main-ode uses `FF_FS_LOCK` 2 (the workspace `ffconf.h`
-  may be set to 2).
+- Application functions: Ghidra's decompile is `FUN_<addr>` in `decomp/<image>/app.c` (search
+  for `^[a-z].* FUN_<addr>(`; read only that function). The workspace holds the image's whole
+  source directory; our current C is the function of the same name there.
+- Library functions: Ghidra's decompile is `decomp/<image>/<lib>/0x<addr>.c` where one exists.
+- Ghidra's names are stale guesses; FUN_xxx are unnamed. `syms/<image>.src.tsv` and
+  `syms/<image>.lib.tsv` map addresses to our names.
 
 ## Commands (PowerShell; never put a `$` in the command line)
 
 ```
-wsl.exe -d Ubuntu -- bash /mnt/f/flippydrive-fw/tools/ws.sh score FUNC 0xADDR --show
-wsl.exe -d Ubuntu -- bash /mnt/f/flippydrive-fw/tools/ws.sh permute FUNC 0xADDR 300
+wsl.exe -d Ubuntu -- env IMG=IMAGE bash /mnt/f/flippydrive-fw/tools/ws.sh score FUNC 0xADDR --show
+wsl.exe -d Ubuntu -- env IMG=IMAGE bash /mnt/f/flippydrive-fw/tools/ws.sh permute FUNC 0xADDR 300
 ```
+
+IMAGE is `main-ode` or `bootloader`. For a long function, `--show` output is long: pipe it through
+`grep -n '^\*'` first and read only the regions that differ.
 
 `score` prints `hits/total size addr first-diff name calls distance N`, then ours beside the
 original ('*' marks differing lines). Goal: EXACT and calls distance 0. `permute` writes its
