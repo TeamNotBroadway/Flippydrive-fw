@@ -201,38 +201,40 @@ __attribute__((noinline)) int __not_in_flash_func(flash_esp32)(FIL *f, uint32_t 
 
 __attribute__((noinline)) int __not_in_flash_func(flash_rp2040)(FIL *f, uint32_t off, uint32_t addr, uint32_t len)
 {
-    uint32_t ret;
-    if (unlikely(len == 0)) {
-        ret = 1;
-    } else if (unlikely(len & 0x1ff)) {
-        ret = 2;
-    } else {
-        ret = f_lseek(f, 0x200 + off);
-        if (likely(ret == 0)) {
-            unsigned flash_off = addr - XIP_BASE;
-            uint32_t blocks = len >> 9;
-            fd_status.show_progress_bar = 1;
-            fd_status.progress = 0;
-            strcpy(fd_status.text, "Erasing RP2040");
-            uint progress = 0;
-            cdc_printf("Clearing from +%x\n", flash_off);
-            flash_range_erase(flash_off, (len + 0xfff) & ~0xfffu);
-            strcpy(fd_status.text, "Programming RP2040");
-            uint32_t end = 1000 * blocks;
-            do {
-                UINT br;
-                ret = f_read(f, xfer_buf, 0x200, &br);
-                if (unlikely(ret || br != 0x200)) {
-                    printf("Unable to read update file during 2040 programming %d\n", (int)ret);
-                    break;
-                }
-                fd_status.progress = __builtin_bswap16(progress / blocks);
-                flash_range_program(flash_off, xfer_buf, 0x200);
-                progress += 1000;
-                flash_off += 0x200;
-            } while (progress != end);
+    if (0 == len)
+        return 1;
+    if (len & 0x1ff)
+        return 2;
+    uint32_t ret = f_lseek(f, 0x200 + off);
+    if (ret)
+        return ret;
+    unsigned flash_off = addr - XIP_BASE;
+    uint32_t blocks = len >> 9;
+    fd_status.show_progress_bar = 1;
+    fd_status.progress = 0;
+    strcpy(fd_status.text, "Erasing RP2040");
+    uint progress = 0;
+    cdc_printf("Clearing from +%x\n", flash_off);
+    flash_range_erase(flash_off, (len + 0xfff) & ~0xfffu);
+    strcpy(fd_status.text, "Programming RP2040");
+    uint32_t end = 1000 * blocks;
+    do {
+        UINT br;
+        ret = f_read(f, xfer_buf, 0x200, &br);
+        if (ret)
+            goto fail;
+        if (br != 0x200) {
+            ret = 0;
+            goto fail;
         }
-    }
+        fd_status.progress = __builtin_bswap16(progress / blocks);
+        flash_range_program(flash_off, xfer_buf, 0x200);
+        progress += 1000;
+        flash_off += 0x200;
+    } while (progress != end);
+    return 0;
+fail:
+    printf("Unable to read update file during 2040 programming %d\n", (int)ret);
     return ret;
 }
 
