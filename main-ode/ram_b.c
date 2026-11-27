@@ -121,13 +121,15 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
     uint32_t words = len + 3;
     pio_sm_set_enabled(pio1, qspi_in_sm, false);
     pio_sm_set_consecutive_pindirs(pio1, qspi_out_sm, 12, 4, true);
-    while (pio_sm_is_tx_fifo_full(pio1, qspi_out_status_sm))
+    uint ssm = qspi_out_status_sm;
+    uint32_t xfer = (words & ~3u) * 2 - 1;
+    while (pio_sm_is_tx_fifo_full(pio1, ssm))
         ;
-    pio_sm_put(pio1, qspi_out_status_sm, (words & ~3u) * 2 - 1);
-    pio_sm_exec_wait_blocking(pio1, qspi_out_status_sm, 0x80a0);
-    pio_sm_exec_wait_blocking(pio1, qspi_out_status_sm, 0xa027);
+    pio_sm_put(pio1, ssm, xfer);
+    pio_sm_exec_wait_blocking(pio1, ssm, 0x80a0);
+    pio_sm_exec_wait_blocking(pio1, ssm, 0xa027);
     pio_set_sm_mask_enabled(pio1, 1u << qspi_out_sm, true);
-    pio_set_sm_mask_enabled(pio1, 1u << qspi_out_status_sm, true);
+    pio_set_sm_mask_enabled(pio1, 1u << ssm, true);
     int ch = dma_claim_unused_channel(true);
     dma_channel_config c = dma_channel_get_default_config(ch);
     channel_config_set_write_increment(&c, false);
@@ -135,7 +137,7 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
     channel_config_set_bswap(&c, true);
     channel_config_set_high_priority(&c, true);
     dma_channel_configure(ch, &c, &pio1->txf[qspi_out_sm], src, words >> 2, true);
-    if (!esp_booted) {
+    if ((!esp_booted)) {
         uart_init(uart0, 115200);
         gpio_set_function(13, GPIO_FUNC_UART);
         hw_set_bits(&uart0_hw->cr, uart0_hw->cr & 0xc000);
@@ -158,7 +160,7 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
     gpio_put(20, 1);
     uint64_t t0 = time_us_64();
     while (pio_sm_is_rx_fifo_empty(pio1, qspi_out_status_sm)) {
-        if (likely(time_us_64() - t0 > 0x3d0ce7)) {
+        if (((int64_t)(time_us_64() - t0) > 0x3d0ce7)) {
             puts("QSPI timeout!");
             dma_channel_cleanup(ch);
             dma_channel_unclaim(ch);
@@ -166,11 +168,11 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
             return 1;
         }
     }
-    (void)pio_sm_get(pio1, qspi_out_status_sm);
+    (void)pio_sm_get_blocking(pio1, qspi_out_status_sm);
     dma_channel_cleanup(ch);
     dma_channel_unclaim(ch);
     esp_remaining = cont;
-    if ((cont == 0)) {
+    if (__builtin_expect(cont == 0, 0)) {
         qspi_reset_sms();
     } else {
         pio_sm_set_enabled(pio1, qspi_out_sm, false);
