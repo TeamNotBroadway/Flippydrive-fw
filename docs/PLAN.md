@@ -155,6 +155,7 @@ Both RP2040 images carry pico-sdk `binary_info`:
 | CMake 3.31.8 and Ninja 1.12.1, Linux builds for WSL (CMake sha256 checked) | `C:\Tools\cmake-3.31.8-linux-x86_64`, `C:\Tools\ninja-linux-1.12.1` |
 | Arm GNU Toolchain 14.2.Rel1 (sha256 matches Arm's; Windows; used to generate CMake builds) | `C:\Tools\arm-gnu-toolchain-14.2.rel1` |
 | Arm GNU 13.3.Rel1 and 12.3.Rel1 (sha256 match Arm's), GNU Arm Embedded 10.3-2021.10 (Linux; FatFs compiler comparison only) | `C:\Tools\arm-gnu-13.3.rel1-linux`, `C:\Tools\arm-gnu-12.3.rel1-linux`, `C:\Tools\gcc-arm-10.3-2021.10-linux` |
+| LLVM Embedded Toolchain for Arm 19.1.5 (sha256 matches the release's; Linux; FatFs comparison only) | `C:\Tools\llvm-et-arm-19.1.5-linux` |
 | pico-sdk 2.1.1, TinyUSB 86ad6e5 | `C:\Tools\pico-sdk-2.1.1` |
 | Ghidra 12.2 (needs Java 25+: `C:\Tools\openjdk-26.0.2_windows-x64_bin\jdk-26.0.2`) | `C:\Tools\ghidra_12.2_PUBLIC` |
 | devkitPPC r47.1 (GCC 15.1.0), libogc 2.12.2 and devkitPro tools: `/opt/devkitpro` of Docker image `devkitpro/devkitppc:20250727` (layer sha256 checked against the manifest; Linux, run under WSL). Used for all GameCube builds | `C:\Tools\devkitppc-20250727\root\opt\devkitpro` |
@@ -292,7 +293,9 @@ by a GCC 14. Extra flags with Arch 14.2, none higher than plain -O3: `-funsigned
 `-fshort-enums` the same; `-fstack-protector` 2017 / 2368, `-fno-ipa-sra` 2009 / 2402,
 `-fwrapv` 1980 / 2369, `-fno-tree-vectorize` 1971 / 2361, `-fno-strict-aliasing` 1739 / 2084,
 `-fno-inline-functions` 894 / 1085, `-fno-omit-frame-pointer` 1127 / 1251, `-Og` 215 / 221;
-as C++ (`-x c++ -fpermissive`) 1861 / 2307; `-std=gnu89` cannot build exFAT.
+as C++ (`-x c++ -fpermissive`) 1861 / 2307; `-std=gnu89` cannot build exFAT. Not clang: LLVM
+Embedded Toolchain for Arm 19.1.5 (`--target=armv6m-none-eabi`) matches 6-9 windows at -O3, -O2,
+-Os and -Oz.
 
 Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
 config, esp-serial-flasher 3937d49 with MD5 off). esp-serial-flasher's `esp_loader.c` carries the
