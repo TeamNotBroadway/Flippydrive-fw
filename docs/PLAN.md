@@ -154,6 +154,7 @@ Both RP2040 images carry pico-sdk `binary_info`:
 | Arch gcc 14.2.0-1, binutils 2.43-1, newlib 4.5.0.20241231-1 (Linux; run under WSL Ubuntu; v7/v8 multilibs and docs left out) | `C:\Tools\arch-arm-none-eabi-14.2.0` |
 | CMake 3.31.8 and Ninja 1.12.1, Linux builds for WSL (CMake sha256 checked) | `C:\Tools\cmake-3.31.8-linux-x86_64`, `C:\Tools\ninja-linux-1.12.1` |
 | Arm GNU Toolchain 14.2.Rel1 (sha256 matches Arm's; Windows; used to generate CMake builds) | `C:\Tools\arm-gnu-toolchain-14.2.rel1` |
+| Arm GNU 13.3.Rel1 and 12.3.Rel1 (sha256 match Arm's), GNU Arm Embedded 10.3-2021.10 (Linux; FatFs compiler comparison only) | `C:\Tools\arm-gnu-13.3.rel1-linux`, `C:\Tools\arm-gnu-12.3.rel1-linux`, `C:\Tools\gcc-arm-10.3-2021.10-linux` |
 | pico-sdk 2.1.1, TinyUSB 86ad6e5 | `C:\Tools\pico-sdk-2.1.1` |
 | Ghidra 12.2 (needs Java 25+: `C:\Tools\openjdk-26.0.2_windows-x64_bin\jdk-26.0.2`) | `C:\Tools\ghidra_12.2_PUBLIC` |
 | devkitPPC r47.1 (GCC 15.1.0), libogc 2.12.2 and devkitPro tools: `/opt/devkitpro` of Docker image `devkitpro/devkitppc:20250727` (layer sha256 checked against the manifest; Linux, run under WSL). Used for all GameCube builds | `C:\Tools\devkitppc-20250727\root\opt\devkitpro` |
