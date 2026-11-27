@@ -1,0 +1,41 @@
+0x2000a8ec	inc_share	148	1	exact build
+0x2000a980	put_utf	240	1	exact build
+0x2000aa70	dir_clear	288	1	exact build
+0x2000ab90	init_alloc_info.isra.0	108	1	exact build
+0x2000abfc	move_window	104	1	exact build
+0x2000ac64	put_fat.part.0	356	1	exact build
+0x2000adc8	get_fat	504	1	exact build
+0x2000afc0	sync_fs	348	1	exact build
+0x2000b11c	get_fileinfo	836	1	exact build
+0x2000b460	check_fs	388	1	exact build
+0x2000b5e4	mount_volume	1776	1	gap
+0x2000bcd4	dir_sdi	736	1	exact build
+0x2000bfb4	dir_remove	368	1	exact build
+0x2000c124	store_xdir	428	1	exact build
+0x2000c2d0	remove_chain	932	1	exact build
+0x2000c674	create_chain	1280	1	gap
+0x2000cb74	dir_next	256	1	exact build
+0x2000cc74	load_xdir	332	1	exact build
+0x2000cdc0	dir_read.constprop.0	700	1	exact build
+0x2000d07c	dir_find	964	1	exact build
+0x2000d440	follow_path	1140	1	gap
+0x2000d8b4	dir_alloc	444	1	exact build
+0x2000da70	dir_register	1444	1	exact build
+0x2000e014	f_mount	148	1	exact build
+0x2000e0a8	f_open	1232	1	exact build
+0x2000e578	f_read	604	1	exact build
+0x2000e7d4	f_write	712	1	exact build
+0x2000ea9c	f_sync	768	1	exact build
+0x2000ed9c	f_close	120	1	exact build
+0x2000ee14	f_lseek	820	1	exact build
+0x2000f148	f_opendir	260	1	exact build
+0x2000f24c	f_closedir	112	1	exact build
+0x2000f2bc	f_readdir	140	1	exact build
+0x2000f348	f_stat	108	1	exact build
+0x2000f3b4	f_getfree	368	1	exact build
+0x2000f524	f_truncate	264	1	exact build
+0x2000f62c	f_unlink	320	1	exact build
+0x2000f76c	f_mkdir	548	1	exact build
+0x2000f990	f_rename	660	1	exact build
+0x2000fc24	f_forward	436	1	exact build
+0x2000fdd8	f_mkfs	4612	1	exact build

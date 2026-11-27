@@ -38,9 +38,7 @@
 /* This option switches fast seek function. (0:Disable or 1:Enable) */
 
 
-#ifndef FF_USE_EXPAND	/* main-ode overrides: third_party/fatfs/CMakeLists.txt */
-#define FF_USE_EXPAND	1
-#endif
+#define FF_USE_EXPAND	0
 /* This option switches f_expand function. (0:Disable or 1:Enable) */
 
 
@@ -58,9 +56,7 @@
 /* This option switches f_forward() function. (0:Disable or 1:Enable) */
 
 
-#ifndef FF_USE_STRFUNC	/* main-ode overrides: third_party/fatfs/CMakeLists.txt */
-#define FF_USE_STRFUNC	1
-#endif
+#define FF_USE_STRFUNC	0
 #define FF_PRINT_LLI	1
 #define FF_PRINT_FLOAT	1
 #define FF_STRF_ENCODE	3
@@ -257,9 +253,7 @@
 /  These options have no effect in read-only configuration (FF_FS_READONLY = 1). */
 
 
-#ifndef FF_FS_NOFSINFO	/* main-ode overrides: third_party/fatfs/CMakeLists.txt */
-#define FF_FS_NOFSINFO	1
-#endif
+#define FF_FS_NOFSINFO	0
 /* If you need to know correct free space on the FAT32 volume, set bit 0 of this
 /  option, and f_getfree() function at the first time after volume mount will force
 /  a full FAT scan. Bit 1 controls the use of last allocated cluster number.
