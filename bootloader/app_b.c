@@ -154,7 +154,7 @@ struct net_req {
     uint32_t magic;
     uint8_t cmd, arg;
     uint8_t pad[2];
-    uint32_t off, len, rest[5];
+    uint32_t off, len, rest[4];
 };
 
 struct open_req {
@@ -179,11 +179,10 @@ struct open_rep {
 // 0: new update.fpkg stored; 1: not on the SD card; 2: empty; negative: link or write error.
 int fetch_update(void)
 {
-    uint ret;
-
     puts("Opening SD card /update.fpkg");
-    uint8_t buf[0x1000];
+    uint32_t ret;
     struct open_rep rep;
+    uint8_t buf[0x1000];
     {
         struct open_req q;
         q.magic = REQ_MAGIC;
@@ -202,7 +201,7 @@ int fetch_update(void)
         if (likely(qspi_send(&q, 0x20, 0x20) == 0)) {
             uint got = 0;
             do {
-                uint32_t n = 0;
+                int32_t n = 0;
                 esp_dma_read((uint8_t *)&rep + got, 0x20 - got, &n, 0);
                 got += n;
             } while (got < 0x20);
@@ -213,29 +212,31 @@ int fetch_update(void)
         }
     }
 
-    uint32_t remaining = rep.size_lo;
     uint8_t fd = rep.fd;
+    uint32_t remaining = rep.size_lo;
     printf("Update size: %d\n", (unsigned)remaining);
     fd_status.show_video = 1;
     fd_status.show_progress_bar = 1;
-    if (!remaining)
+    if (unlikely(!remaining))
         return 2;
+    FIL fil;
 
     bool opened = false;
-    FIL fil;
     do {
-        struct net_req r;
         UINT bw;
+        struct net_req r;
         r.magic = REQ_MAGIC;
         r.cmd = IPC_READ;
         r.arg = fd;
         r.off = rep.size_lo - remaining;
-        unsigned chunk = remaining > 0x1000 ? 0x1000 : remaining;
+        unsigned chunk = remaining;
+        if (chunk > 0x1000)
+            chunk = 0x1000;
         r.len = chunk;
         if (likely(likely(qspi_send(&r, 0x20, chunk) == 0))) {
-            int32_t got = 0;
+            int got = 0;
             do {
-                int32_t n = 0;
+                uint32_t n = 0;
                 esp_dma_read(got + buf, chunk - got, &n, 0);
                 got += n;
             } while (got < chunk);
@@ -257,8 +258,8 @@ int fetch_update(void)
             f_close(&fil);
             return ret;
         }
-        remaining -= chunk;
         opened = true;
+        remaining -= chunk;
     } while (remaining);
     f_close(&fil);
     {
@@ -288,38 +289,16 @@ void update_and_boot(void)
 {
     bool unchanged;
     int rc;
+    uint8_t c;
 
     qspi_init();
-    uint8_t c;
     SET_LINE1("Waiting for ESP Boot...");
-    if (!likely(esp_boot_wait())) {
-        gpio_set_function(13, GPIO_FUNC_PIO1);
-        busy_wait_ms(100);
-        SET_LINE1("Preparing SD card updates");
-        rc = fetch_update();
-        if (unlikely(rc != 0)) {
-            unchanged = rc == 2;
-            SET_LINE1("Update complete, press START");
-            f_unlink("/forceupdate");
-            f_unlink("/forceupdate.txt");
-            goto report;
-        }
-        SET_LINE1("Resetting ESP32");
-        ESP_DOWNLOAD_MODE();
-        SET_LINE1("Performing update");
-        if (!likely(install_update(UPDATE_PATH) == 0)) {
-            memcpy(fd_status.text, "Update FAILED, replace update.fpkg or do USB recovery", 0x36);
-        } else {
-            SET_LINE1("Update complete, press START");
-            f_unlink("/forceupdate");
-            f_unlink("/forceupdate.txt");
-        }
-    } else {
+    if (esp_boot_wait()) {
         SET_LINE2("Attempting ESP reflash");
         SET_LINE1("Preparing SD card updates");
         SET_LINE1("Resetting ESP32");
-        ESP_DOWNLOAD_MODE();
         unchanged = false;
+        ESP_DOWNLOAD_MODE();
         SET_LINE1("Performing update");
         if (unlikely(install_update(UPDATE_PATH) != 0)) {
             memcpy(fd_status.text, "Update FAILED, replace update.fpkg or do USB recovery", 0x36);
@@ -336,28 +315,24 @@ void update_and_boot(void)
         esp_reset();
         busy_wait_ms(4000);
         SET_LINE1("Preparing SD card updates");
-        if (unlikely(esp_boot_wait())) {
+        if (esp_boot_wait()) {
             SET_LINE1("ESP boot FAILURE, do USB recovery");
             goto report;
         }
+        goto resume;
+    } else {
         gpio_set_function(13, GPIO_FUNC_PIO1);
-        rc = fetch_update();
-        if (rc != 0) {
-            SET_LINE1("Update complete, press START");
-            unchanged = rc == 2;
-            f_unlink("/forceupdate");
-            f_unlink("/forceupdate.txt");
-            goto report;
-        }
+        SET_LINE1("Preparing SD card updates");
+        unchanged = fetch_update() == 2;
         SET_LINE1("Resetting ESP32");
         ESP_DOWNLOAD_MODE();
         SET_LINE1("Performing update");
-        if (unlikely(install_update(UPDATE_PATH) == 0)) {
+        if (!likely(install_update(UPDATE_PATH) == 0)) {
+            memcpy(fd_status.text, "Update FAILED, replace update.fpkg or do USB recovery", 0x36);
+        } else {
             SET_LINE1("Update complete, press START");
             f_unlink("/forceupdate");
             f_unlink("/forceupdate.txt");
-        } else {
-            memcpy(fd_status.text, "Update FAILED, replace update.fpkg or do USB recovery", 0x36);
         }
     }
 
@@ -374,6 +349,29 @@ report:
     multicore_reset_core1();
     watchdog_enable(0x7fffff, 0);
     launch_app(0x80000);
+
+resume:
+    gpio_set_function(13, GPIO_FUNC_PIO1);
+    busy_wait_ms(100);
+    rc = fetch_update();
+    if (unlikely(rc == 0)) {
+        SET_LINE1("Resetting ESP32");
+        ESP_DOWNLOAD_MODE();
+        SET_LINE1("Performing update");
+        if (install_update(UPDATE_PATH) != 0) {
+            memcpy(fd_status.text, "Update FAILED, replace update.fpkg or do USB recovery", 0x36);
+        } else {
+            SET_LINE1("Update complete, press START");
+            f_unlink("/forceupdate");
+            f_unlink("/forceupdate.txt");
+        }
+        goto report;
+    }
+    unchanged = rc == 2;
+    SET_LINE1("Update complete, press START");
+    f_unlink("/forceupdate");
+    f_unlink("/forceupdate.txt");
+    goto report;
 }
 
 // All pins to inputs with the activity pin driving expander pin 4; nothing in the image calls it.
