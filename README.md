@@ -20,21 +20,96 @@ Known broken or unverified (details in `docs/HACKS.md`):
   (`bootloader/esp_port.c`), and esp-serial-flasher's two fork-modified functions
   (`esp_loader_connect`, `esp_loader_flash_start`) are now matched in the vendored source
   (`docs/HACKS.md`). Untested on hardware; a bad bootloader may not be recoverable.
-- Functions that are not exact matches (bootloader 9 of 69, main-ode 13 of 95, scored by
-  `tools/funcdiff.py` at their `src.tsv` addresses) are checked for call order only.
-  Conditions, constants and stores can still differ from the original.
+- Functions that are not byte-identical may behave differently from the original (Decompilation
+  status below lists them and how far each is checked).
 - Some main-ode globals are unidentified, and their sizes are guessed.
 - Functions are not at the original addresses.
-- The exact build takes 8 of 67 bootloader and 9 of 55 main-ode `src.tsv` functions from the
-  original, and 3612 and 16825 bytes in all (`status.tsv` and `gaps.tsv` in its output list
-  them; `tools/check_all.sh` prints the totals).
+
+## Decompilation status
+
+Every function falls into one of three groups. The tables are generated: run
+`tools/check_all.sh`, then `python3 tools/exact_summary.py` and `python3 tools/equiv.py --md`.
+
+1. **Byte-identical.** Every section the exact build links from our objects compiles to the
+   original's bytes at the original's address. This covers all FatFs, pico-sdk, TinyUSB,
+   esp-serial-flasher, newlib and libgcc code located in the images, and every application
+   function not in the last table below.
+2. **Same instructions, different registers or order.** Not byte-identical, but the
+   instructions match the original's once register names and branch targets are erased
+   (`register-only`), or match as a set in a different order or block layout (`reordered`).
+   Very likely to behave the same; not proven.
+3. **May differ in behaviour.** Anything else (`differs`). Hand inspection found register
+   choice and block layout as the remaining differences in most of these, but the check cannot
+   show that, so they are unverified.
+
+Bytes in each image by source (exact build):
+
+**bootloader** (0x40600 bytes; 59 of 67 `src.tsv` application functions from C)
+
+| Component | Bytes from C | Share of image |
+|---|---:|---:|
+| Application (decompiled) | 8110 | 3.1% |
+| FatFs R0.15 (vendor-edited) | 27832 | 10.6% |
+| esp-serial-flasher (fork-edited) | 4230 | 1.6% |
+| pico-sdk 2.1.1 | 26260 | 10.0% |
+| TinyUSB (SDK 2.1.1) | 11325 | 4.3% |
+| newlib / libgcc | 23441 | 8.9% |
+| Embedded GameCube disc and data | 153860 | 58.4% |
+| Strings, padding and fill (generated) | 5010 | 1.9% |
+| **Copied from the original** | **3612** | **1.4%** |
+
+**main-ode** (0x1b800 bytes; 47 of 55 `src.tsv` application functions from C)
+
+| Component | Bytes from C | Share of image |
+|---|---:|---:|
+| Application (decompiled) | 15486 | 13.7% |
+| FatFs R0.15 (vendor-edited) | 27484 | 24.4% |
+| pico-sdk 2.1.1 | 26908 | 23.9% |
+| TinyUSB (SDK 2.1.1) | 11325 | 10.1% |
+| newlib / libgcc | 8985 | 8.0% |
+| Strings, padding and fill (generated) | 7407 | 6.6% |
+| **Copied from the original** | **15045** | **13.4%** |
+
+Functions that are not byte-identical (the exact build copies their bytes from the original):
+
+| Image | Function | Address | Original bytes | Instructions ours/orig | Class | Match | Calls | Literals |
+|---|---|---|---:|---:|---|---:|---|---|
+| bootloader | `usb_uart_bridge` | 0x200000e4 | 256 | 107/107 | reordered | 100% | same | same |
+| bootloader | `fetch_update` | 0x20000424 | 648 | 267/273 | differs | 96% | same | differs (ours: one section address) |
+| bootloader | `update_and_boot` | 0x200006ac | 852 | 330/334 | differs | 96% | differs (4) | same |
+| bootloader | `install_update` | 0x20000fac | 612 | 219/215 | differs | 97% | same | same |
+| bootloader | `flash_esp32` | 0x200013a0 | 344 | 149/147 | differs | 97% | same | same |
+| bootloader | `flash_rp2040` | 0x200014f8 | 312 | 135/135 | differs | 98% | differs (2) | same |
+| bootloader | `install_file` | 0x20001630 | 276 | 115/113 | differs | 97% | same | same |
+| bootloader | `esp_dma_read` | 0x20016bf8 | 204 | 83/85 | differs | 93% | same | differs (ours 0x40002b) |
+| main-ode | `audio_fill` | 0x100816b8 | 1300 | 526/526 | differs | 99% | same | same |
+| main-ode | `adpcm_decode_frame` | 0x10081f4c | 812 | 398/394 | differs | 95% | same | differs (ours 0x7fff 0x1fffff) |
+| main-ode | `req_submit` | 0x10082370 | 144 | 55/55 | differs | 98% | same | same |
+| main-ode | `cmd_read` | 0x20001354 | 876 | 343/343 | differs | 99% | same | same |
+| main-ode | `cmd_ipc` | 0x2000178c | 7768 | 3238/2977 | differs | 89% | differs (10) | differs (9 words of ours; orig 0x3fff) |
+| main-ode | `qspi_send` | 0x20003a04 | 648 | 267/267 | differs | 99% | same | differs (ours 0x40001b) |
+| main-ode | `aud_dma_irq` | 0x20004038 | 504 | 213/213 | register-only | 100% | same | differs (ours 0x2003ccc8) |
+| main-ode | `cmd_audio_stream` | 0x20004230 | 1304 | 508/508 | reordered | 100% | same | same |
+| main-ode | `di_stream_net` | 0x20004884 | 1988 | 855/819 | differs | 93% | differs (10) | differs (ours 0x2003cd22 0x50200010 0x23ee0 0x2d004; orig 0x100939d4) |
+| main-ode | `di_dma_irq` | 0x20005048 | 132 | 13/55 | differs | 20% | differs (3) | differs (ours 0x2003b6b8; orig 0x40c 0x20006758 0x20006754) |
+
+- **Match**: share of instructions found on both sides, with registers, branch targets and
+  stack offsets erased and mnemonics and immediates kept.
+- **Calls**: the call sequence, as an edit distance.
+- **Literals**: literal-pool words. A word only on our side is usually a constant we load
+  where the original builds it in registers, which is not a behaviour difference by itself.
+- **Original bytes** run to the next known function start, so they can include an unidentified
+  neighbour: `di_dma_irq`'s 132 bytes do (ours is 13 instructions), and the `cmd_ipc` and
+  `di_stream_net` regions are cut short by a symbol inside them, so their counts are
+  approximate. About 700 further copied bytes belong to small unidentified functions between
+  known ones (`equiv.py` prints them).
 
 ## Targets
 
 | Image | Load | Size | SHA-256 | Status |
 |---|---|---|---|---|
-| `flippydrive-bootloader.bin` | 0x10000000 | 0x40600 | fe5e5047…a0c64bf7e | exact build identical (59 of 67 `src.tsv` functions from C); C build links, 60 of 69 scored functions exact |
-| `flippydrive-main-ode.bin` | 0x10080000 | 0x1b800 | cadba959…ec7be7f34 | exact build identical (45 of 55 `src.tsv` functions from C); C build links, 82 of 95 scored functions exact |
+| `flippydrive-bootloader.bin` | 0x10000000 | 0x40600 | fe5e5047…a0c64bf7e | exact build identical, 1.4% of bytes copied from the original; C build links (Decompilation status) |
+| `flippydrive-main-ode.bin` | 0x10080000 | 0x1b800 | cadba959…ec7be7f34 | exact build identical, 13.4% of bytes copied from the original; C build links (Decompilation status) |
 | GameCube disc image (bootloader 0x100002d0) | — | 0x258f4 | 1996f511…7e92af267 | identical (gc-boot-tools `create_iso_header`) |
 | GameCube `main.dol` (in the bootloader's disc image) | 0x81100000 | 0x1d8f4 | 1b787f13…b08dc4c49 | identical |
 | GameCube `apploader.img` (disc 0x2440) | 0x81200000 | 0x2394 | f9c16679…bad319f6b | identical (gc-boot-tools) |
