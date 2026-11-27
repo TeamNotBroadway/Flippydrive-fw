@@ -1,8 +1,40 @@
-0x1008aaa8	put_fat.part.0	356	1	callgraph:f_lseek
-0x1008ac0c	get_fat	504	1	callgraph:f_read (d2/11)
-0x1008b428	mount_volume	1768	1	callgraph:f_mount
-0x1008c4b0	create_chain	1280	1	callgraph:f_lseek
-0x1008dfe8	f_mount	132	1	callgraph:mount_fat (d4/8)
-0x1008e4e4	f_read	604	1	callgraph:di_stream_file (d2/11)
-0x1008ed3c	f_lseek	820	1	callgraph:cmd_read (d7/35)
-0x1008fd30	f_mkfs	2270	1	callgraph:mount_fat (d4/8)
+0x1008a844	inc_share	160	1	ids_A
+0x1008a8e4	put_utf	240	1	ids_A
+0x1008a9d4	init_alloc_info.isra.0	108	1	ids_A
+0x1008aa40	move_window	104	1	ids_A
+0x1008aaa8	put_fat.part.0	356	1	ids_A
+0x1008ac0c	get_fat	504	1	ids_A
+0x1008ae04	sync_fs	348	1	ids_A
+0x1008af60	get_fileinfo	834	1	ids_A
+0x1008b2a4	check_fs	364	1	ids_A
+0x1008b428	mount_volume	1768	1	ids_A
+0x1008bb10	dir_sdi	736	1	ids_A
+0x1008bdf0	dir_remove	354	1	ids_A
+0x1008bf60	store_xdir	428	1	ids_A
+0x1008c10c	remove_chain	932	1	ids_A
+0x1008c4b0	create_chain	1280	1	ids_A
+0x1008c9b0	dir_next.constprop.0	440	1	ids_A
+0x1008cb68	load_xdir	328	1	ids_A
+0x1008ccb4	dir_read.constprop.0	700	1	ids_B
+0x1008cf70	dir_find	964	1	ids_B
+0x1008d334	follow_path	1140	1	ids_B
+0x1008d7a8	dir_alloc	668	1	ids_B
+0x1008da44	dir_register	1444	1	ids_B
+0x1008dfe8	f_mount	132	1	callgraph:mount_fat
+0x1008e06c	f_open	1144	1	ids_B
+0x1008e4e4	f_read	604	1	callgraph:di_stream_file
+0x1008e740	f_write	712	1	ids_B
+0x1008ea08	f_sync	700	1	ids_B
+0x1008ecc4	f_close	114	1	pilot
+0x1008ed3c	f_lseek	814	1	callgraph:cmd_read
+0x1008f070	f_opendir	208	1	ids_B
+0x1008f140	f_closedir	112	1	pilot
+0x1008f1b0	f_readdir	124	1	ids_B
+0x1008f22c	f_stat	96	1	ids_B
+0x1008f28c	f_getfree	364	1	ids_B
+0x1008f3fc	f_truncate	264	1	ids_B
+0x1008f504	f_unlink	316	1	ids_B
+0x1008f640	f_mkdir	688	1	ids_B
+0x1008f8f0	f_rename	652	1	ids_B
+0x1008fb7c	f_forward	436	1	ids_B
+0x1008fd30	f_mkfs	680	1	callgraph:mount_fat
