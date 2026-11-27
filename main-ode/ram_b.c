@@ -140,7 +140,7 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
     if ((!esp_booted)) {
         uart_init(uart0, 115200);
         gpio_set_function(13, GPIO_FUNC_UART);
-        hw_set_bits(&uart0_hw->cr, uart0_hw->cr & 0xc000);
+        uart_set_hw_flow(uart0, false, false);
         uart_set_format(uart0, 8, 1, UART_PARITY_NONE);
         uart_set_fifo_enabled(uart0, false);
         puts("Waiting for ESP to boot");
