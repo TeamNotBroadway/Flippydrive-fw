@@ -283,6 +283,15 @@ main-ode's inlined `dec_share` bounds the index at 2 (`cmp r3, #1`), so main-ode
 `FF_FS_LOCK` 2: that raises main-ode's whole-file score 2026 -> 2111 and lowers the bootloader's
 2418 -> 2327 (LOCK 1: 1984 / 2257; LOCK 4: 2018 / 2358). With `FF_USE_LFN` that is a second
 option on which the images disagree.
+Other GCCs (Linux builds under `C:\Tools`, sha256 checked against Arm's for 12.3 and 13.3; 10.3
+has no published sha256), current config, main-ode / bootloader at -O3: Arm GNU 10.3-2021.10
+752 / 908, 12.3.Rel1 1580 / 1838, 13.3.Rel1 1704 / 1970, Arch 14.2 2026 / 2418; -O2 and -Os
+lower for each. The score rises with the version up to 14 and falls at 15.1, so FatFs was built
+by a GCC 14. Extra flags with Arch 14.2, none higher than plain -O3: `-funsigned-char` and
+`-fshort-enums` the same; `-fstack-protector` 2017 / 2368, `-fno-ipa-sra` 2009 / 2402,
+`-fwrapv` 1980 / 2369, `-fno-tree-vectorize` 1971 / 2361, `-fno-strict-aliasing` 1739 / 2084,
+`-fno-inline-functions` 894 / 1085, `-fno-omit-frame-pointer` 1127 / 1251, `-Og` 215 / 221;
+as C++ (`-x c++ -fpermissive`) 1861 / 2307; `-std=gnu89` cannot build exFAT.
 
 Both are vendored in `third_party/` from the closest public source (FatFs R0.15 with the best
 config, esp-serial-flasher 3937d49 with MD5 off). esp-serial-flasher's `esp_loader.c` carries the
