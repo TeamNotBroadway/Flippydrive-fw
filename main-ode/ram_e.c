@@ -79,6 +79,19 @@ int __not_in_flash_func(cmd_ipc)(uint32_t a, uint32_t b, uint32_t c)
     }
     uint32_t arg = IPC_HANDLE(a);
     switch (IPC_SUB(a)) {
+    case IPC_CLOSE: {
+        if (disc_is_file(arg)) {
+            net_stream_active = 1;
+            req_close(arg);
+            LOG("DI", "CLOSE %d\n", arg);
+        } else {
+            net_stream_active = 0;
+            root_dir_res = f_close(&di_file);
+            LOG("DI", "CLOSE FLASH %d\n", arg);
+        }
+        PUT(0);
+        return 0;
+    }
     case IPC_NET_DISABLE: {
         req_net_disable();
         LOG("DI", "IPC NET DISABLE\n");
@@ -104,7 +117,7 @@ int __not_in_flash_func(cmd_ipc)(uint32_t a, uint32_t b, uint32_t c)
         return 0;
     }
     case IPC_MOUNT: {
-        if (mount_h1 != arg)
+        if (__builtin_expect(!!(mount_h1 != arg), 0))
             req_clear_busy();
         mount_h1 = arg;
         mount_h2 = IPC_MOUNT_HANDLE2(a);
@@ -136,7 +149,7 @@ int __not_in_flash_func(cmd_ipc)(uint32_t a, uint32_t b, uint32_t c)
                 aud_read(0, size, esp_rx.data, fd);
                 req_close(fd);
                 int ret = ini_parse_string((const char *)esp_rx.data, config_ini_handler, 0);
-                if (ret < 0)
+                if (__builtin_expect(!!(ret < 0), 1))
                     LOG("DI", "Unable to parse config.ini, ret %d\n", ret);
                 if (ipc_cfg.server[0]) {
                     ipc_cfg.flags |= IPC_CFG_SERVER_SET;
@@ -183,7 +196,7 @@ int __not_in_flash_func(cmd_ipc)(uint32_t a, uint32_t b, uint32_t c)
         }
         net_stream_active = 0;
         struct fd_filestat *r = &reply;
-        if (!root_dir_open) {
+        if (__builtin_expect(!!(!root_dir_open), 1)) {
             LOG("DI", "READDIR NOT OPEN\n");
             root_dir_res = f_opendir(&root_dir, "/");
             if (root_dir_res != 0) {
@@ -304,7 +317,7 @@ int __not_in_flash_func(cmd_ipc)(uint32_t a, uint32_t b, uint32_t c)
             di_error(DI_BAD_FD);
             return 1;
         }
-        if (id_bitmap_test(a >> 16))
+        if (__builtin_expect(!!(id_bitmap_test(a >> 16)), 1))
             sleep_us(300);
         if (disc_is_file(arg)) {
             net_stream_active = 1;
@@ -342,7 +355,7 @@ int __not_in_flash_func(cmd_ipc)(uint32_t a, uint32_t b, uint32_t c)
         net_stream_active = 0;
         LOG("DI", "WRITE FLASH addr: 0x%08X DIlen: 0x%08X len: 0x%08X fd: %d\n", b, n, c, arg);
         root_dir_res = f_lseek(&di_file, b);
-        if (root_dir_res == 0) {
+        if (__builtin_expect(!!(root_dir_res == 0), 1)) {
             UINT bw;
             root_dir_res = f_write(&di_file, di_buffer + 32, c, &bw);
             return 0;
@@ -387,19 +400,6 @@ int __not_in_flash_func(cmd_ipc)(uint32_t a, uint32_t b, uint32_t c)
         req_net_status((uint8_t *)st);
         LOG("DI", "IPC NET STATUS 0x%02X\n", ((uint8_t *)st)[1]);
         send_words(st, st + 40);
-        return 0;
-    }
-    case IPC_CLOSE: {
-        if (disc_is_file(arg)) {
-            net_stream_active = 1;
-            req_close(arg);
-            LOG("DI", "CLOSE %d\n", arg);
-        } else {
-            net_stream_active = 0;
-            root_dir_res = f_close(&di_file);
-            LOG("DI", "CLOSE FLASH %d\n", arg);
-        }
-        PUT(0);
         return 0;
     }
     default:
