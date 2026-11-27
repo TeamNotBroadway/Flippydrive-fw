@@ -56,40 +56,42 @@ void audio_fill(void)
         aud_read(aud_pos, len, aud_file_buf, aud_fd);
         adpcm_decode(aud_file_buf, aud_pcm[b], len);
         aud_pos += len;
-        if (pos + AUD_CHUNK < end) {
-            aud_set_buf_state(b, 1);
-        } else if (!aud_loop) {
-            if (aud_next_start == 0) {
-                memset(&aud_pcm[b][len], 0, rest);
-                aud_last_len = len;
-                aud_set_buf_state(b, 2);
-                LOG("AUD", "track terminating at 0x%08X\n", aud_pos);
-                aud_playing = 0;
-                return;
+        if (pos + AUD_CHUNK >= end) {
+            if (!aud_loop) {
+                if (aud_next_start == 0) {
+                    memset(&aud_pcm[b][len], 0, rest);
+                    aud_last_len = len;
+                    aud_set_buf_state(b, 2);
+                    LOG("AUD", "track terminating at 0x%08X\n", aud_pos);
+                    aud_playing = 0;
+                    return;
+                }
+                uint32_t next = aud_next_start, next_len = aud_next_len;
+                aud_loop_start = next;
+                aud_cur_start = next;
+                aud_cur_len = next_len;
+                aud_pos = next;
+                aud_end = next + next_len;
+                aud_next_start = 0;
+                aud_next_len = 0;
+                adpcm_reset();
+                aud_read(aud_pos, rest, aud_file_buf, aud_fd);
+                LOG("AUD", "NEXT read from 0x%08X len 0x%08X\n", aud_pos, rest);
+                adpcm_decode(aud_file_buf, &aud_pcm[b][len * 7 / 8], rest);
+                aud_set_buf_state(b, 1);
+                LOG("AUD", "track playing next at 0x%08X\n", aud_pos);
+                aud_pos += rest;
+            } else {
+                aud_cur_start = aud_loop_start;
+                aud_pos = aud_loop_start;
+                adpcm_reset();
+                aud_read(aud_pos, rest, aud_file_buf, aud_fd);
+                LOG("AUD", "LOOP read from 0x%08X len 0x%08X\n", aud_pos, rest);
+                adpcm_decode(aud_file_buf, &aud_pcm[b][len * 7 / 8], rest);
+                aud_pos += rest;
+                aud_set_buf_state(b, 1);
             }
-            uint32_t next = aud_next_start, next_len = aud_next_len;
-            aud_loop_start = next;
-            aud_cur_start = next;
-            aud_cur_len = next_len;
-            aud_pos = next;
-            aud_end = next + next_len;
-            aud_next_start = 0;
-            aud_next_len = 0;
-            adpcm_reset();
-            aud_read(aud_pos, rest, aud_file_buf, aud_fd);
-            LOG("AUD", "NEXT read from 0x%08X len 0x%08X\n", aud_pos, rest);
-            adpcm_decode(aud_file_buf, &aud_pcm[b][len * 7 / 8], rest);
-            aud_set_buf_state(b, 1);
-            LOG("AUD", "track playing next at 0x%08X\n", aud_pos);
-            aud_pos += rest;
         } else {
-            aud_cur_start = aud_loop_start;
-            aud_pos = aud_loop_start;
-            adpcm_reset();
-            aud_read(aud_pos, rest, aud_file_buf, aud_fd);
-            LOG("AUD", "LOOP read from 0x%08X len 0x%08X\n", aud_pos, rest);
-            adpcm_decode(aud_file_buf, &aud_pcm[b][len * 7 / 8], rest);
-            aud_pos += rest;
             aud_set_buf_state(b, 1);
         }
     }
