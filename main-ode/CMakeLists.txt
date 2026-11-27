@@ -2,7 +2,7 @@ add_executable(flippydrive-main-ode main.c di.c diskio.c ioexp.c log.c qspi.c au
 target_include_directories(flippydrive-main-ode PRIVATE ${CMAKE_SOURCE_DIR}/common)
 target_compile_definitions(flippydrive-main-ode PRIVATE FD_VERSION="${FD_VERSION}")
 target_link_libraries(flippydrive-main-ode pico_stdlib pico_multicore hardware_i2c hardware_pio
-    hardware_dma hardware_flash fatfs)
+    hardware_dma hardware_flash fatfs_main_ode)
 pico_generate_pio_header(flippydrive-main-ode ${CMAKE_CURRENT_LIST_DIR}/qspi.pio)
 pico_set_linker_script(flippydrive-main-ode ${CMAKE_CURRENT_SOURCE_DIR}/memmap_main_ode.ld)
 pico_set_program_name(flippydrive-main-ode flippydrive-main-ode)

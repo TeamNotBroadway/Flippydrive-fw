@@ -33,12 +33,21 @@ def build_flags(img, srcpath=None):
     """
     nin = open(os.path.expanduser("~/fd-build/fw/build.ninja")).read().split("\n")
     src = " " + os.path.abspath(srcpath) if srcpath else None
-    i = next((n for n, l in enumerate(nin) if src and l.startswith("build ")
-              and l.split(" || ")[0].endswith(src)), None)
-    if i is None and srcpath:
-        same = [n for n, l in enumerate(nin) if l.startswith("build ") and ".o:" in l
-                and l.split(" || ")[0].endswith("/" + os.path.basename(srcpath))]
-        i = same[0] if len(same) == 1 and not srcpath.endswith("main.c") else None
+    tag = img.replace("-", "_")
+
+    def pick(cands):
+        """One library source can build into one object per image (fatfs, fatfs_main_ode)."""
+        own = [n for n in cands if tag in nin[n].split(":")[0]]
+        if own:
+            return own[0]
+        other = [n for n in cands if not any(t in nin[n].split(":")[0] for t in ("main_ode", "bootloader"))]
+        return other[0] if other else None
+
+    i = pick([n for n, l in enumerate(nin) if src and l.startswith("build ")
+              and l.split(" || ")[0].endswith(src)])
+    if i is None and srcpath and not srcpath.endswith("main.c"):
+        i = pick([n for n, l in enumerate(nin) if l.startswith("build ") and ".o:" in l
+                  and l.split(" || ")[0].endswith("/" + os.path.basename(srcpath))])
     if i is None:
         key = f"build {img}/CMakeFiles/flippydrive-{img}.dir/main.c.o"
         i = next(n for n, l in enumerate(nin) if l.startswith(key))

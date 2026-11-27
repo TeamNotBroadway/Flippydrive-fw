@@ -113,7 +113,9 @@
 */
 
 
-#define FF_USE_LFN		3
+#ifndef FF_USE_LFN	/* main-ode overrides: third_party/fatfs/CMakeLists.txt */
+#define FF_USE_LFN	3
+#endif
 #define FF_MAX_LFN		255
 /* The FF_USE_LFN switches the support for LFN (long file name).
 /
@@ -251,7 +253,9 @@
 /  These options have no effect in read-only configuration (FF_FS_READONLY = 1). */
 
 
+#ifndef FF_FS_NOFSINFO	/* main-ode overrides: third_party/fatfs/CMakeLists.txt */
 #define FF_FS_NOFSINFO	1
+#endif
 /* If you need to know correct free space on the FAT32 volume, set bit 0 of this
 /  option, and f_getfree() function at the first time after volume mount will force
 /  a full FAT scan. Bit 1 controls the use of last allocated cluster number.
@@ -263,7 +267,9 @@
 */
 
 
-#define FF_FS_LOCK		3
+#ifndef FF_FS_LOCK	/* main-ode overrides: third_party/fatfs/CMakeLists.txt */
+#define FF_FS_LOCK	3
+#endif
 /* The option FF_FS_LOCK switches file lock function to control duplicated file open
 /  and illegal operation to open objects. This option must be 0 when FF_FS_READONLY
 /  is 1.

@@ -13,8 +13,6 @@ cmd=$1; shift
 case $cmd in
 init)
     d=permute_out/ws/$2; mkdir -p "$d"; cp third_party/$1/*.c third_party/$1/*.h "$d"/
-    # main-ode's FatFs was built with FF_FS_LOCK 2 (its dec_share bounds the index at 2)
-    [ "$1" = fatfs ] && sed -i -E 's/^(#define FF_FS_LOCK[[:space:]]+)[0-9]+/\12/' "$d"/ffconf.h
     echo "$d";;
 score|permute)
     f=$1; d=permute_out/ws/$f
