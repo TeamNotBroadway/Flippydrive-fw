@@ -18,25 +18,24 @@ void adpcm_reset(void)
 
 static inline int16_t adpcm_sample(int bits, int scale, int filter, int32_t *hist)
 {
-    int32_t h = 0;
-    switch (filter) {
-    case 1:
+    int32_t h;
+    if (filter == 1) {
         h = hist[0] * 0x3c;
-        break;
-    case 2:
+    } else if (filter == 2) {
         h = hist[0] * 0x73 - hist[1] * 0x34;
-        break;
-    case 3:
-        h = hist[0] * 0x62 - hist[1] * 0x37;
-        break;
+    } else {
+        h = 0;
+        if (filter == 3)
+            h = hist[0] * 0x62 - hist[1] * 0x37;
     }
     h = (h + 0x20) >> 6;
     if (h < -0x200000)
         h = -0x200000;
     if (h > 0x1fffff)
         h = 0x1fffff;
-    int32_t cur = (((int16_t)(bits << 12) >> scale) << 6) + h;
-    hist[1] = hist[0];
+    int32_t prev = hist[0];
+    int32_t cur = h + (((int16_t)(bits << 12) >> scale) << 6);
+    hist[1] = prev;
     hist[0] = cur;
     cur >>= 6;
     if (cur < -0x8000)
