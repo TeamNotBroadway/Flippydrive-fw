@@ -1,3 +1,7 @@
+/* Vendor edit (FlippyDrive): ff.c is built at -O2 inside the -O3 firmware build. With this
+   pragma every located main-ode ff.c function compiles byte-identical (docs/HACKS.md). */
+#pragma GCC optimize ("O2")
+
 /*----------------------------------------------------------------------------/
 /  FatFs - Generic FAT Filesystem Module  R0.15 w/patch1                      /
 /-----------------------------------------------------------------------------/
