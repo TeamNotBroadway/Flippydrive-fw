@@ -181,8 +181,13 @@ void __not_in_flash_func(di_worker)(void)
         root_dir_open = 1;
     for (;;) {
         uint32_t a = pio_sm_get_blocking(pio0, di_sm);
-        uint32_t b = pio_sm_get_blocking(pio0, di_sm);
-        uint32_t c = pio_sm_get_blocking(pio0, di_sm);
+        uint32_t b, c;
+        while (pio_sm_is_rx_fifo_empty(pio0, di_sm))
+            tight_loop_contents();
+        b = pio0->rxf[di_sm];
+        while (pio_sm_is_rx_fifo_empty(pio0, di_sm))
+            tight_loop_contents();
+        c = pio0->rxf[di_sm];
         gpio_set_irq_enabled(27, GPIO_IRQ_EDGE_FALL, true);
         if (di_dispatch(a, b, c)) {
             pio_sm_put_blocking(pio0, di_sm, 0);
