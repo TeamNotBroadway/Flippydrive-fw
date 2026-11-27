@@ -2,8 +2,8 @@
 ; names are the firmware's (its log strings); bodies are disassembled from the image.
 
 .program qspi_out_status
-    wait 0 gpio 17
 .wrap_target
+    wait 0 gpio 17
 loop:
     wait 0 gpio 16
     wait 1 gpio 16

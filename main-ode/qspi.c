@@ -29,7 +29,32 @@ void qspi_init(void)
     LOG("QSPI", "qspi_out_program offset %d\n", qspi_out_offset);
     LOG("QSPI", "qspi_out_status_program offset %d\n", qspi_out_status_offset);
 
-    qspi_out_program_init(pio1, qspi_out_sm, qspi_out_offset, QSPI_PIN_D0);
-    qspi_out_status_program_init(pio1, qspi_out_status_sm, qspi_out_status_offset);
-    qspi_in_program_init(pio1, qspi_in_sm, qspi_in_offset, QSPI_PIN_D0);
+    {
+        uint sm = qspi_out_sm;
+        uint off = qspi_out_offset;
+        pio_sm_config c = qspi_out_program_get_default_config(off);
+        sm_config_set_out_pins(&c, QSPI_PIN_D0, 4);
+        pio_gpio_init(pio1, QSPI_PIN_D0);
+        pio_gpio_init(pio1, QSPI_PIN_D0 + 1);
+        pio_gpio_init(pio1, QSPI_PIN_D0 + 2);
+        pio_gpio_init(pio1, QSPI_PIN_D0 + 3);
+        sm_config_set_out_shift(&c, false, true, 32);
+        sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+        pio_sm_init(pio1, sm, off, &c);
+    }
+    {
+        uint sm = qspi_out_status_sm;
+        uint off = qspi_out_status_offset;
+        pio_sm_config c = qspi_out_status_program_get_default_config(off);
+        pio_sm_init(pio1, sm, off, &c);
+    }
+    {
+        uint sm = qspi_in_sm;
+        uint off = qspi_in_offset;
+        pio_sm_config c = qspi_in_program_get_default_config(off);
+        sm_config_set_in_pins(&c, QSPI_PIN_D0);
+        sm_config_set_in_shift(&c, false, true, 32);
+        sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+        pio_sm_init(pio1, sm, off, &c);
+    }
 }
