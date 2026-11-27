@@ -161,7 +161,7 @@ void __not_in_flash_func(id_bitmap_set)(uint32_t idx, int value)
     id_bitmap[i] = v;
 }
 
-bool __not_in_flash_func(id_bitmap_test)(uint32_t idx)
+bool __not_in_flash_func(id_bitmap_test)(uint8_t idx)
 {
     if (ipc_cfg_dirty != 0)
         return false;

@@ -24,7 +24,7 @@ extern uint8_t root_dir_res;
 extern uint8_t net_stream_active;
 extern bool disc_valid(int v);
 extern bool disc_is_file(int v);
-extern bool id_bitmap_test(uint32_t idx);
+extern bool id_bitmap_test(uint8_t idx);
 extern void id_bitmap_set(uint32_t idx, int val);
 extern void di_stream_file(uint32_t len);
 extern int di_stream_net(uint32_t addr, uint32_t len, uint sm, uint32_t fd);

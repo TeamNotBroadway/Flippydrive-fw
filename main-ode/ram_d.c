@@ -19,7 +19,7 @@ extern uint8_t root_dir_res;
 extern uint8_t net_stream_active;
 extern bool disc_valid(int v);
 extern bool disc_is_file(int v);
-extern bool id_bitmap_test(uint32_t idx);
+extern bool id_bitmap_test(uint8_t idx);
 extern void di_stream_file(uint32_t len);
 extern int di_stream_net(uint32_t addr, uint32_t len, uint sm, uint32_t fd);
 
@@ -60,14 +60,7 @@ int __not_in_flash_func(cmd_read)(uint32_t a, uint32_t offset, uint32_t len)
         }
         if (id_bitmap_test(fd))
             sleep_us(300);
-        if (!(!disc_is_file(fd))) {
-            net_stream_active = 1;
-            if (unlikely(di_stream_net(addr, len, di_sm, fd))) {
-                LOG("DI", "READ ERROR\n");
-                di_error(DI_ERR_READ);
-                return 1;
-            }
-        } else {
+        if (!disc_is_file(fd)) {
             net_stream_active = 0;
             root_dir_res = f_lseek(&di_file, addr);
             if (root_dir_res) {
@@ -76,13 +69,20 @@ int __not_in_flash_func(cmd_read)(uint32_t a, uint32_t offset, uint32_t len)
                 return 1;
             }
             di_stream_file(len);
+        } else {
+            net_stream_active = 1;
+            if (unlikely(di_stream_net(addr, len, di_sm, fd))) {
+                LOG("DI", "READ ERROR\n");
+                di_error(DI_ERR_READ);
+                return 1;
+            }
         }
         if ((a & 0xc0) == 0x40)
             di_state = 0;
-        if (di_error_status != 0) {
-            ioexp_set_pin(2, true);
-            di_error_status = 0;
-        }
+        if (di_error_status == 0)
+            return 0;
+        ioexp_set_pin(2, true);
+        di_error_status = 0;
         return 0;
     }
     di_error(DI_ERR_BAD_HANDLE);
