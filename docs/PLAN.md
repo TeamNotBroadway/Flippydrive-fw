@@ -281,7 +281,7 @@ Done:
   mutex, FatFs code page 437, TinyUSB's optional callbacks left undefined weak.
 - RP2040 exact build (`tools/rp_exact.py`, `docs/EXACT_BUILD.md`): both images byte-identical,
   with every C function that matches placed at its original address and the rest of the bytes
-  taken from the original (bootloader 3612, main-ode 17187). `tools/check_all.sh` rebuilds
+  taken from the original (bootloader 3612, main-ode 16825). `tools/check_all.sh` rebuilds
   every image and `update.fpkg` and checks all of them against the original.
 - esp-serial-flasher: the fork's `esp_loader_connect` and `esp_loader_flash_start` match.
 
