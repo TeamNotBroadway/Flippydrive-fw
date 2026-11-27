@@ -45,8 +45,10 @@ void __not_in_flash_func(flush_task)(void)
         uint32_t wr = esp_rx.wr;
         uint32_t len = wr - rd;
         if (len) {
-            uint32_t done = 0;
-            esp_dma_read(esp_rx.data + (rd - esp_rx.base), len, &done, 0);
+            uint32_t done;
+            uint32_t base = esp_rx.base;
+            done = 0;
+            esp_dma_read(esp_rx.data + (rd - base), len, &done, 0);
             esp_rx.rd += done;
         }
     }
