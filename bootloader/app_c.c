@@ -289,11 +289,7 @@ int __not_in_flash_func(install_update)(const char *path)
     fd_status.progress = 0;
     cdc_printf("Installing update %s\n", path);
     UINT br;
-    if (f_open(&f, path, FA_READ))
-        return 1;
-    if (likely(f_read(&f, buf, 0x200, &br)))
-        return 1;
-    if (unlikely(br != 0x200))
+    if (f_open(&f, path, FA_READ) || f_read(&f, buf, 0x200, &br) || br != 0x200)
         return 1;
     memcpy(&hdr, buf, br);
     hexdump((uint8_t *)&hdr, br);
