@@ -173,8 +173,8 @@ int __not_in_flash_func(qspi_send)(const void *src, uint32_t len, uint32_t cont)
     if ((cont == 0)) {
         qspi_reset_sms();
     } else {
-        pio_sm_set_enabled(pio1, qspi_out_status_sm, false);
         pio_sm_set_enabled(pio1, qspi_out_sm, false);
+        pio_sm_set_enabled(pio1, qspi_out_status_sm, false);
         pio_sm_set_consecutive_pindirs(pio1, qspi_in_sm, 12, 4, false);
         pio_sm_set_enabled(pio1, qspi_in_sm, true);
     }
