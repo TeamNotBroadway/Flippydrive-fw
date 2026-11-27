@@ -21,6 +21,8 @@ FAST = os.path.expanduser("~/tc")
 if os.path.isdir(FAST):
     CC = CC.replace("/mnt/c/Tools", FAST)
     os.environ.setdefault("OBJDUMP", f"{FAST}/arch-arm-none-eabi-14.2.0/bin/arm-none-eabi-objdump")
+# FD_CC replaces the compiler and FD_CFLAGS is appended after the build flags (compiler probes).
+CC = os.environ.get("FD_CC", CC)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import callseq  # noqa: E402  (after OBJDUMP is set: funcdiff reads it on import)
 
@@ -57,6 +59,7 @@ def build_flags(img, srcpath=None):
         if m:
             out[m.group(1)] = m.group(2)
     flags = " ".join(out.get(k, "") for k in ("DEFINES", "INCLUDES", "FLAGS"))
+    flags += " " + os.environ.get("FD_CFLAGS", "")
     return flags.replace("/mnt/c/Tools", FAST) if os.path.isdir(FAST) else flags
 
 

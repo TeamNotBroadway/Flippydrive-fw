@@ -1,0 +1,120 @@
+{
+  "src_dir": "/mnt/f/flippydrive-fw/third_party/fatfs",
+  "sources": [
+    "ff.c",
+    "ffunicode.c"
+  ],
+  "config": "ffconf.h",
+  "base_flags": [
+    "-mcpu=cortex-m0plus",
+    "-mthumb",
+    "-O3",
+    "-DNDEBUG",
+    "-ffunction-sections",
+    "-fno-data-sections",
+    "-c"
+  ],
+  "fixed": {
+    "FF_CODE_PAGE": "437",
+    "FF_USE_MKFS": "1",
+    "FF_FS_EXFAT": "1",
+    "FF_USE_LFN": "2",
+    "FF_USE_FORWARD": "1",
+    "FF_FS_LOCK": "2",
+    "FF_FS_NOFSINFO": "0",
+    "FF_LFN_UNICODE": "2",
+    "FF_FS_NORTC": "1"
+  },
+  "options": {
+    "FF_MAX_SS": [
+      "4096",
+      "512"
+    ],
+    "FF_STRF_ENCODE": [
+      "3",
+      "0",
+      "1",
+      "2"
+    ],
+    "FF_USE_STRFUNC": [
+      "1",
+      "0",
+      "2"
+    ],
+    "FF_PRINT_LLI": [
+      "1",
+      "0"
+    ],
+    "FF_PRINT_FLOAT": [
+      "1",
+      "0",
+      "2"
+    ],
+    "FF_FS_RPATH": [
+      "0",
+      "1",
+      "2"
+    ],
+    "FF_VOLUMES": [
+      "1",
+      "2",
+      "4"
+    ],
+    "FF_MULTI_PARTITION": [
+      "0",
+      "1"
+    ],
+    "FF_LBA64": [
+      "0",
+      "1"
+    ],
+    "FF_USE_TRIM": [
+      "0",
+      "1"
+    ],
+    "FF_FS_TINY": [
+      "0",
+      "1"
+    ],
+    "FF_FS_REENTRANT": [
+      "0",
+      "1"
+    ],
+    "FF_USE_EXPAND": [
+      "1",
+      "0"
+    ],
+    "FF_USE_CHMOD": [
+      "1",
+      "0"
+    ],
+    "FF_USE_LABEL": [
+      "0",
+      "1"
+    ],
+    "FF_USE_FIND": [
+      "0",
+      "1",
+      "2"
+    ],
+    "FF_USE_FASTSEEK": [
+      "0",
+      "1"
+    ],
+    "FF_FS_MINIMIZE": [
+      "0",
+      "1"
+    ],
+    "FF_MAX_LFN": [
+      "255",
+      "128"
+    ],
+    "FF_LFN_BUF": [
+      "255",
+      "128"
+    ],
+    "FF_SFN_BUF": [
+      "12"
+    ]
+  }
+}
