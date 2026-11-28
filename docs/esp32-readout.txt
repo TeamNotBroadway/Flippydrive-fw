@@ -1,0 +1,38 @@
+ESP32 readout from a FlippyDrive, over the clean bridge (patched 0x12 bridge, docs/ESP32.md).
+esptool/espefuse v5.7.0, --before no-reset --after no-reset. Read-only: no eFuse burn, no flash
+write. The device-unique MAC tail is redacted; everything decisive here is config, not identity.
+
+=== esptool flash_id ===
+Chip type:          ESP32-U4WDH (revision v3.1)
+Features:           Wi-Fi, BT, Dual Core + LP Core, 240MHz, Embedded Flash, Vref calibration in eFuse, Coding Scheme None
+Crystal frequency:  40MHz
+MAC:                1c:69:20:xx:xx:xx
+Manufacturer: 20   Device: 4016   Detected flash size: 4MB
+Flash voltage set by eFuse: 3.3V
+
+=== espefuse summary (decisive fields) ===
+Flash fuses:
+  FLASH_CRYPT_CNT      = 127 (0b1111111)   encryption enabled (odd bits set); all 7 bits burned
+  FLASH_CRYPT_CONFIG   = 15  (0xf)         key tweak bits
+
+Security fuses:
+  DISABLE_DL_DECRYPT   = True              UART-download reads are NOT decrypted -> read_flash = ciphertext
+  DISABLE_DL_ENCRYPT   = True              encrypted-download write disabled
+  ABS_DONE_0           = True              Secure Boot V1 enabled
+  ABS_DONE_1           = False
+  UART_DOWNLOAD_DIS    = False             UART download mode still enabled (so the bridge connects)
+  BLOCK1 (flash key)   = read-protected (RD_DIS=3)
+  BLOCK2 (secure boot) = read-protected
+
+Config fuses:
+  DISABLE_DL_CACHE     = True              flash cache off in UART bootloader -> cache-remap stub blocked
+  JTAG_DISABLE         = True
+
+Identity fuses:
+  WAFER_VERSION_MAJOR  = 3, MINOR = 1      -> revision v3.1 (hardened silicon)
+
+=== Conclusion ===
+Flash encryption ENABLED, RELEASE mode. read_flash over the bridge returns the same ciphertext
+already in update.fpkg. DISABLE_DL_CACHE blocks the cache-remap trick; the key is read-protected;
+silicon v3.1 has no public glitch key-extraction. The plaintext ESP32 firmware is NOT recoverable
+from this device. This is the release-mode branch (step 4) of docs/ESP32.md, confirmed on hardware.

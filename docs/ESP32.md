@@ -8,6 +8,23 @@ of this is needed to rebuild `update.fpkg`; it matters only to decompile the ESP
 The target is an ESP32 (the original, not S2/S3/C3): `esp_loader_connect` forces
 `s_target = ESP32_CHIP` (`docs/HACKS.md`).
 
+## Measured on hardware (release mode — not recoverable)
+
+One FlippyDrive was read over the clean bridge (`espefuse`/`esptool` v5.7.0; full readout in
+[esp32-readout.txt](esp32-readout.txt)). It settles the question for that device:
+
+- **Chip:** ESP32-U4WDH, silicon **revision v3.1**, 4 MB embedded flash.
+- **Flash encryption: enabled, RELEASE mode.** `FLASH_CRYPT_CNT = 127` (all 7 bits burned, so the
+  reflash budget is spent and encryption is locked on); `DISABLE_DL_DECRYPT`, `DISABLE_DL_ENCRYPT`
+  and `DISABLE_DL_CACHE` all **True**; Secure Boot V1 on; flash-key block read-protected.
+
+So `read_flash` over the bridge returns the same ciphertext already in `update.fpkg`, the
+cache-remap stub is blocked, the key will not read back, and v3.1 silicon has no public glitch
+attack. **The plaintext ESP32 firmware is not recoverable from this device.** This is the
+release-mode branch (step 4) below, confirmed. The clean bridge itself is verified working — it
+is how this readout was taken. Another unit could in principle be in development mode, but a
+production FlippyDrive is expected to match this.
+
 ## The entries
 
 | Entry | fpkg version | ESP32 flash offset | 1.4.6 length | Byte-0 entropy (1.4.6) |
@@ -86,7 +103,8 @@ are the reference: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/s
      0x10025cd0) becomes a `nop`, so the stock `0x12` bridge passes every byte through. Every
      other byte is the original's, so no decompiled C runs; the tool checks that. It also writes
      `OUTDIR/update.fpkg` with that entry replaced. The bridge still sends its `0x06`
-     acknowledgement first. Not tested on hardware.
+     acknowledgement first. **Verified on hardware:** this build took the readout above —
+     send `0x12`, read the `0x06` ack, then run `esptool`/`espefuse` with `--before no-reset`.
    - **C build:** build with `-DFD_ESP_EXTRACT=ON` and send `0x11` on the USB-CDC control
      channel; `clean_bridge` (`bootloader/app_a.c`) does the same setup and bridges byte for
      byte. This build runs the decompiled C for every function, including the 8 that are not
@@ -116,9 +134,11 @@ are the reference: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/s
 from the flash-encryption mode whether download-mode reads will be plaintext, dumps the flash,
 and classifies the three regions (0xE9 = decrypted). It is read-only (no eFuse burn, no flash
 write) and needs `pip install esptool`. It does not itself toggle IO0/EN, so the board must
-already be in download mode: either direct wiring, or the clean-bridge command above (which does
-drive the lines) on an `-DFD_ESP_EXTRACT` build. Its header documents both. Untested — no board
-was available when it was written.
+already be in download mode: either direct wiring, or the clean bridge above (which does drive
+the lines). Its header documents both. The script itself has not been run on a board — the
+hardware readout above was taken with `esptool`/`espefuse` by hand — but the method it automates
+(steps 2–4) is confirmed, and on this device step 2's verdict is release mode, so its step-3 dump
+would only return ciphertext.
 
 ## Writing to an encryption-enabled ESP32, and the reflash budget
 
@@ -145,7 +165,8 @@ use a 3-bit `SPI_BOOT_CRYPT_CNT`). Encryption is enabled when an odd number of i
 each re-encryption toggles parity by burning one more bit. Bits only go 0->1, so the number of
 re-encryption cycles is small and finite — a handful (on the order of 3) on the original ESP32
 before the counter is spent and the partition is locked as-is. Treat the exact remaining count as
-something to read from the board, not to assume.
+something to read from the board, not to assume. On the device read above `FLASH_CRYPT_CNT` was
+already `127` — all 7 bits burned, so its budget is fully spent and the partition is locked as-is.
 
 **What spends a cycle.** Not the UART transfer — that is only transport, and reflashing identical
 ciphertext never moves the counter. A bit is burned by the *encryption operation*: the bootloader
